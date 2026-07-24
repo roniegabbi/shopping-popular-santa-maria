@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #3d1a5b;
+  --navy-2: #5b2785;
+  --brand: #8a2bae;
+  --accent: #f7901e;
+  --gold: #f7a81e;
+  --green: #58b947;
+  --magenta: #e6188d;
+  --sky: #1f9bd4;
+  --ink: #241433;
+  --muted: #6e5c82;
+  --line: #eae2f2;
+  --bg: #f7f3fb;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.container-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: 22px;
+  padding-right: 22px;
+}
