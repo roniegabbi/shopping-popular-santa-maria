@@ -7,6 +7,7 @@ import { gerarPanoramaPDF } from "@/lib/panoramaPdf";
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 import type { Agente } from "@/lib/notificacaoPdf";
 import FinanceiroChart from "./FinanceiroChart";
+import { gerarRelatorioSituacoes, type SituacaoSecao } from "@/lib/relatorioSituacoesPdf";
 
 const sb = createSupabase();
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -31,6 +32,7 @@ function Body() {
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
   const [logo, setLogo] = useState<Logo | null>(null);
+  const [secoes, setSecoes] = useState<SituacaoSecao[]>([]);
   const [form, setForm] = useState({ titulo: "", nivel: "medio", origem: "", base_legal: "" });
 
   const carregar = useCallback(async () => {
@@ -74,6 +76,28 @@ function Body() {
     setSecretario(ags.find((x) => x.papel === "secretario") ?? null);
     const { data: lg } = await sb.from("site_config").select("valor").eq("chave", "logo_prefeitura").maybeSingle();
     setLogo(await carregarLogo((lg?.valor as { url?: string } | null)?.url));
+
+    // listas nominais (quem está em cada situação)
+    const { data: perms } = await sb.from("permissionario").select("nome,status,banca(numero)").in("status", ["falecido", "nao_recadastrado", "inadimplente"]);
+    const ps = (perms as { nome: string; status: string; banca: { numero: string } | null }[]) ?? [];
+    const item = (p: (typeof ps)[number], detalhe?: string) => ({ banca: p.banca?.numero ?? "—", nome: p.nome, detalhe });
+    const ordena = (a: { banca: string }, b: { banca: string }) => Number(a.banca) - Number(b.banca);
+    const falecidos = ps.filter((p) => p.status === "falecido").map((p) => item(p, "Óbito — cassação obrigatória")).sort(ordena);
+    const naoRecad = ps.filter((p) => p.status === "nao_recadastrado").map((p) => item(p)).sort(ordena);
+
+    const { data: pags } = await sb.from("pagamento").select("banca_id,status,banca(numero),permissionario(nome)").in("status", ["em_atraso", "protestado"]);
+    const mp = new Map<string, { banca: string; nome: string; cotas: number }>();
+    for (const pg of (pags as { banca_id: string; banca: { numero: string } | null; permissionario: { nome: string } | null }[]) ?? []) {
+      const cur = mp.get(pg.banca_id) ?? { banca: pg.banca?.numero ?? "—", nome: pg.permissionario?.nome ?? "—", cotas: 0 };
+      cur.cotas += 1; mp.set(pg.banca_id, cur);
+    }
+    const inad = [...mp.values()].filter((g) => g.cotas > 3).map((g) => ({ banca: g.banca, nome: g.nome, detalhe: `${g.cotas} cotas em atraso` }));
+
+    setSecoes([
+      { titulo: "Titulares falecidos (óbito → cassação)", base: "Parecer 33/2024 · ADI 5.337", itens: falecidos },
+      { titulo: "Recadastramento em atraso", base: "Art. 12, V do Decreto", itens: naoRecad },
+      { titulo: "Inadimplentes acima de 3 cotas", base: "Art. 14, §3º do Decreto", itens: inad },
+    ]);
   }, []);
 
   useEffect(() => { carregar(); }, [carregar]);
@@ -167,6 +191,42 @@ function Body() {
                 </div>
               ))}
           </div>
+        </div>
+      </Secao>
+
+      <Secao titulo="Situações por permissionário (nominal)">
+        <div className="mb-3">
+          <button
+            onClick={() => {
+              try {
+                gerarRelatorioSituacoes({ secoes, gestor, secretario, logo });
+              } catch (e) {
+                alert("Erro ao gerar PDF: " + (e instanceof Error ? e.message : String(e)));
+              }
+            }}
+            className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy2"
+          >
+            Relatório nominal (PDF)
+          </button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {secoes.map((s) => (
+            <div key={s.titulo} className="rounded-2xl border border-line bg-white p-4">
+              <b className="text-[14px] text-navy">{s.titulo} ({s.itens.length})</b>
+              {s.base && <span className="mb-1 block text-[11.5px] text-muted">{s.base}</span>}
+              <ul className="mt-2 grid max-h-64 gap-1 overflow-auto text-[13px]">
+                {s.itens.length === 0 ? (
+                  <li className="text-muted">Nenhum registro.</li>
+                ) : (
+                  s.itens.map((it, i) => (
+                    <li key={i} className="border-b border-line pb-1">
+                      <b className="text-navy">Banca {it.banca}</b> — {it.nome}
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+          ))}
         </div>
       </Secao>
 
