@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabase } from "@/lib/supabase";
 import AdminGuard from "../_components/AdminGuard";
 import { STATUS_LABEL, STATUS_COLOR, type BancaStatus } from "@/lib/types";
+import { gerarRelatorioSituacoes } from "@/lib/relatorioSituacoesPdf";
+import { carregarLogo, type Logo } from "@/lib/pdfPreview";
+import type { Agente } from "@/lib/notificacaoPdf";
 
 const sb = createSupabase();
 const STATUSES: BancaStatus[] = ["ocupada", "vaga", "aguardando_sorteio", "em_regularizacao", "em_cassacao", "lacrada"];
@@ -23,6 +26,10 @@ export default function BancasPage() {
 function Body() {
   const [rows, setRows] = useState<Row[]>([]);
   const [segs, setSegs] = useState<Seg[]>([]);
+  const [perm, setPerm] = useState<Record<string, { nome: string; status: string }>>({});
+  const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
+  const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
+  const [logo, setLogo] = useState<Logo | null>(null);
   const [q, setQ] = useState("");
   const [fStatus, setFStatus] = useState("todos");
 
@@ -31,12 +38,38 @@ function Body() {
     const rs = (data as Row[]) ?? [];
     rs.sort((a, b) => Number(a.numero) - Number(b.numero));
     setRows(rs);
+    const { data: ps } = await sb.from("permissionario").select("banca_id,nome,status");
+    const map: Record<string, { nome: string; status: string }> = {};
+    for (const p of (ps as { banca_id: string; nome: string; status: string }[]) ?? []) if (p.banca_id) map[p.banca_id] = { nome: p.nome, status: p.status };
+    setPerm(map);
   }, []);
 
   useEffect(() => {
     sb.from("segmento").select("id,nome").order("ordem").then(({ data }) => setSegs((data as Seg[]) ?? []));
+    sb.from("agente_publico").select("id,nome,cargo,papel,portaria_numero,portaria_data,ativo").eq("ativo", true).then(({ data }) => {
+      const ags = (data as (Agente & { id: string; papel: string })[]) ?? [];
+      setGestor(ags.find((x) => x.papel === "gestor_shopping") ?? null);
+      setSecretario(ags.find((x) => x.papel === "secretario") ?? null);
+    });
+    sb.from("site_config").select("valor").eq("chave", "logo_prefeitura").maybeSingle()
+      .then(async ({ data }) => setLogo(await carregarLogo((data?.valor as { url?: string } | null)?.url)));
     carregar();
   }, [carregar]);
+
+  function gerarRelatorio() {
+    const porStatus = new Map<BancaStatus, { banca: string; nome: string; detalhe: string }[]>();
+    STATUSES.forEach((s) => porStatus.set(s, []));
+    rows.forEach((r) => {
+      const p = perm[r.id];
+      porStatus.get(r.status)?.push({
+        banca: r.numero,
+        nome: p?.nome ?? (r.status === "vaga" || r.status === "aguardando_sorteio" ? "(vaga)" : "—"),
+        detalhe: PAVL[r.pavimento] ?? r.pavimento,
+      });
+    });
+    const secoes = STATUSES.filter((s) => (porStatus.get(s)?.length ?? 0) > 0).map((s) => ({ titulo: STATUS_LABEL[s], itens: porStatus.get(s)! }));
+    gerarRelatorioSituacoes({ secoes, titulo: "RELATÓRIO GERAL DE BANCAS — SHOPPING INDEPENDÊNCIA", arquivo: "Relatorio_Bancas", gestor, secretario, logo });
+  }
 
   async function setStatus(id: string, status: string) {
     await sb.from("banca").update({ status }).eq("id", id);
@@ -67,13 +100,16 @@ function Body() {
           {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
         </select>
         <span className="self-center text-[13px] text-muted">{filtered.length} banca(s)</span>
+        <button onClick={gerarRelatorio} className="ml-auto rounded-lg bg-navy px-4 py-2 text-sm font-bold text-white hover:bg-navy2">
+          Relatório geral (PDF)
+        </button>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-line bg-white">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="bg-navy text-left text-xs text-white">
-              <th className="p-3">Banca</th><th className="p-3">Pavimento</th><th className="p-3">Situação</th><th className="p-3">Segmento</th>
+              <th className="p-3">Banca</th><th className="p-3">Pavimento</th><th className="p-3">Permissionário</th><th className="p-3">Situação</th><th className="p-3">Segmento</th>
             </tr>
           </thead>
           <tbody>
@@ -81,6 +117,7 @@ function Body() {
               <tr key={r.id} className="border-t border-line">
                 <td className="p-3 font-bold text-navy">{r.numero}</td>
                 <td className="p-3">{PAVL[r.pavimento] ?? r.pavimento}</td>
+                <td className="p-3">{perm[r.id]?.nome ?? "—"}</td>
                 <td className="p-3">
                   <span className="inline-flex items-center gap-2">
                     <i className="h-3 w-3 shrink-0 rounded" style={{ background: STATUS_COLOR[r.status] }} />

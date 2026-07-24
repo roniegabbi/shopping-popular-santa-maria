@@ -38,12 +38,12 @@ function assinaturas(doc: jsPDF, y: number, gestor?: Agente | null, secretario?:
   });
 }
 
-export function gerarRelatorioSituacoes(opts: { secoes: SituacaoSecao[]; gestor?: Agente | null; secretario?: Agente | null; logo?: Logo | null }) {
+export function gerarRelatorioSituacoes(opts: { secoes: SituacaoSecao[]; titulo?: string; arquivo?: string; gestor?: Agente | null; secretario?: Agente | null; logo?: Logo | null }) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = cabecalho(doc, opts.logo);
 
   doc.setFont("times", "bold").setFontSize(13).setTextColor(0, 0, 0);
-  doc.text("RELATÓRIO NOMINAL DE SITUAÇÕES — SHOPPING INDEPENDÊNCIA", W / 2, y, { align: "center" }); y += 6;
+  doc.text(opts.titulo ?? "RELATÓRIO NOMINAL DE SITUAÇÕES — SHOPPING INDEPENDÊNCIA", W / 2, y, { align: "center" }); y += 6;
   doc.setFont("times", "normal").setFontSize(9.5).setTextColor(90, 90, 90);
   doc.text(dataExtenso(), W / 2, y, { align: "center" }); y += 9;
 
@@ -78,5 +78,5 @@ export function gerarRelatorioSituacoes(opts: { secoes: SituacaoSecao[]; gestor?
   });
 
   assinaturas(doc, Math.max(y + 10, 252), opts.gestor, opts.secretario);
-  previewPdf(doc, `Relatorio_Situacoes_${new Date().toISOString().slice(0, 10)}.pdf`);
+  previewPdf(doc, `${opts.arquivo ?? "Relatorio_Situacoes"}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
