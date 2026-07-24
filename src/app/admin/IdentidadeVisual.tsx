@@ -10,6 +10,7 @@ type Item = { key: string; titulo: string; hint: string };
 
 const ITENS: Item[] = [
   { key: "logo_prefeitura", titulo: "Logo da Prefeitura (cabeçalho)", hint: "PNG/SVG com fundo transparente · altura ~72px" },
+  { key: "hero_imagem", titulo: "Imagem do topo (hero)", hint: "Foto larga · aparece à direita esmaecendo no roxo · ex.: 1600×900" },
   ...HOME_CARDS.map((c) => ({
     key: c.key,
     titulo: `Card — ${c.titulo}`,

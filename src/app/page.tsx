@@ -6,14 +6,31 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const [bancas, cfg] = await Promise.all([getBancas(), getSiteConfig()]);
+  const heroImg = cfgUrl(cfg, "hero_imagem") || cfgUrl(cfg, "card_c1");
   const total = bancas.length;
   const ocupadas = countBy(bancas, "ocupada");
   const vagas = countBy(bancas, "vaga") + countBy(bancas, "aguardando_sorteio");
 
   return (
     <>
-      <section className="relative overflow-hidden bg-gradient-to-br from-navy to-brand py-16 text-white">
-        <div className="container-page">
+      <section className="relative overflow-hidden bg-gradient-to-br from-navy via-brand to-navy2 py-16 text-white md:py-24">
+        {heroImg && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[55%] md:block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={heroImg}
+              alt=""
+              className="h-full w-full object-cover object-center"
+              style={{
+                WebkitMaskImage: "linear-gradient(to right, transparent, #000 50%)",
+                maskImage: "linear-gradient(to right, transparent, #000 50%)",
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/25 to-transparent" />
+          </div>
+        )}
+        <div className="container-page relative z-10">
+         <div className="max-w-2xl">
           <span className="inline-block rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wide">
             Espaço público de comércio popular
           </span>
@@ -33,6 +50,7 @@ export default async function Home() {
               Ver mapa de bancas
             </Link>
           </div>
+         </div>
         </div>
       </section>
 
