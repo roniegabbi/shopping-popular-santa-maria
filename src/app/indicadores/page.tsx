@@ -36,10 +36,10 @@ export default async function IndicadoresPage() {
     val: bancas.filter((b) => b.pavimento === p && b.status === "ocupada").length,
   }));
 
-  const segMap = new Map<string, { nome: string; cor: string; val: number }>();
+  const segMap = new Map<string, { label: string; color: string; val: number }>();
   for (const b of bancas) {
     if (b.status !== "ocupada" || !b.segmento) continue;
-    const cur = segMap.get(b.segmento.id) ?? { nome: b.segmento.nome, cor: b.segmento.cor, val: 0 };
+    const cur = segMap.get(b.segmento.id) ?? { label: b.segmento.nome, color: b.segmento.cor, val: 0 };
     cur.val += 1;
     segMap.set(b.segmento.id, cur);
   }
