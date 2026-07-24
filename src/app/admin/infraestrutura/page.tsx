@@ -61,6 +61,20 @@ function Body() {
   }
   async function setObs(id: string, observacao: string) {
     await sb.from("infraestrutura_area").update({ observacao }).eq("id", id);
+    setAreas((as) => as.map((a) => (a.id === id ? { ...a, observacao } : a)));
+  }
+
+  // Notifica a Concessionária a tomar providências sobre uma área do prédio
+  async function notificarArea(a: Area) {
+    const assunto = `Providências — ${a.nome}`;
+    const objeto = `tomar as providências necessárias quanto à área "${a.nome}" (situação atual: ${STATUS[a.status].l})${a.observacao ? `: ${a.observacao}` : ""}`;
+    const base = "Art. 7º, §4º do Decreto (manutenção estrutural sob responsabilidade da concessionária)";
+    await sb.from("notificacao").insert({
+      destinatario: "administradora", tipo: "irregularidade", origem: "poder_publico",
+      assunto, descricao: a.observacao || null, base_legal: base, status: "emitida",
+      gestor_id: gestor?.id ?? null, secretario_id: secretario?.id ?? null,
+    });
+    gerarNotificacaoPDF({ tipo: "irregularidade", destinatario: "administradora", assunto: objeto, descricao: a.observacao, baseLegal: base, gestor, secretario, logo });
   }
 
   async function abrirReparo(e: React.FormEvent) {
@@ -123,6 +137,9 @@ function Body() {
               <input defaultValue={a.observacao ?? ""} onBlur={(e) => setObs(a.id, e.target.value)} placeholder="Observação / vistoria…"
                 className="mt-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" />
               {a.ultima_vistoria && <p className="mt-1 text-[11px] text-muted">Últ. vistoria: {new Date(a.ultima_vistoria).toLocaleDateString("pt-BR")}</p>}
+              <button onClick={() => notificarArea(a)} className="mt-2 w-full rounded-lg border border-brand/40 px-2 py-1.5 text-[12px] font-semibold text-brand hover:bg-[#F1EAF8]">
+                Notificar Administradora + PDF
+              </button>
             </div>
           ))}
         </div>

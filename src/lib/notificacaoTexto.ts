@@ -32,6 +32,9 @@ export function baseLegalPadrao(tipo: string, destinatario: string): string {
     case "recadastramento": return "Art. 12, V do Decreto";
     case "cassacao": return "Art. 18 do Decreto";
     case "recolhimento": return "Art. 18, IV do Decreto";
+    case "questionamento":
+    case "esclarecimento": return "Art. 16 do Decreto";
+    case "advertencia": return "Art. 18 do Decreto";
     default: return "Decreto de Normas de Funcionamento";
   }
 }
@@ -69,14 +72,25 @@ export function gerarTextoNotificacao(d: DadosNotificacao): string[] {
     case "recolhimento":
       corpo = `Fica V.Sa. NOTIFICADO(A) a desocupar o estande/banca ${banca} no prazo de 30 (trinta) dias, com a entrega das chaves à empresa administradora, sob pena de lacre do espaço e recolhimento das mercadorias e pertences nele encontrados, nos termos do ${DECRETO} (${base}).`;
       break;
+    case "questionamento":
+    case "esclarecimento":
+      corpo = `Fica V.Sa. NOTIFICADO(A) a, ${prazo}, prestar esclarecimentos acerca de: ${objeto(d)}, referente ao estande/banca ${banca} do Shopping Independência, nos termos do ${DECRETO} (${base}). Trata-se de notificação para questionamento, sem, neste momento, aplicação de penalidade.`;
+      break;
+    case "advertencia":
+      corpo = `Fica V.Sa. ADVERTIDO(A) formalmente em razão de ${objeto(d)}, no estande/banca ${banca}, nos termos do ${DECRETO} (${base}). A não regularização ou a reincidência, ${prazo}, ensejará a adoção das medidas cabíveis, inclusive procedimento de cassação.`;
+      break;
     default: // irregularidade
       corpo = `Fica V.Sa. NOTIFICADO(A) a, ${prazo}, sanar a seguinte irregularidade constatada no estande/banca ${banca}: ${objeto(d)}, nos termos do ${DECRETO} (${base}).`;
   }
 
-  const fecho =
-    d.tipo === "cassacao"
-      ? `Decorrido o prazo sem manifestação, o procedimento seguirá seu curso regular.`
-      : `O não atendimento, após as notificações cabíveis, ensejará o encaminhamento à Administração Pública e a abertura de procedimento de cassação da autorização de uso, facultados o contraditório e a ampla defesa (art. 18 do Decreto).`;
+  let fecho: string;
+  if (d.tipo === "cassacao") {
+    fecho = `Decorrido o prazo sem manifestação, o procedimento seguirá seu curso regular.`;
+  } else if (d.tipo === "questionamento" || d.tipo === "esclarecimento") {
+    fecho = `Solicita-se atenção ao prazo indicado. Esta notificação tem caráter de esclarecimento.`;
+  } else {
+    fecho = `O não atendimento, após as notificações cabíveis, ensejará o encaminhamento à Administração Pública e a abertura de procedimento de cassação da autorização de uso, facultados o contraditório e a ampla defesa (art. 18 do Decreto).`;
+  }
 
   return [cabecalho, corpo, fecho];
 }

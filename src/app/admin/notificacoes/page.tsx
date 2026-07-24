@@ -16,11 +16,15 @@ const DESTINATARIOS = [
 ];
 const TIPOS = [
   { v: "irregularidade", l: "Irregularidade" },
+  { v: "questionamento", l: "Questionamento" },
+  { v: "advertencia", l: "Advertência" },
   { v: "inadimplencia", l: "Inadimplência" },
   { v: "recadastramento", l: "Recadastramento" },
   { v: "cassacao", l: "Cassação" },
   { v: "recolhimento", l: "Recolhimento" },
 ];
+
+type Motivo = { id: string; nome: string; tipo: string; base_legal: string | null; descricao_padrao: string | null };
 const STATUS_LABEL: Record<string, string> = {
   emitida: "Emitida", cumprida: "Cumprida", encaminhada: "Encaminhada", expirada: "Expirada",
 };
@@ -54,6 +58,7 @@ function Body() {
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
   const [logo, setLogo] = useState<Logo | null>(null);
+  const [motivos, setMotivos] = useState<Motivo[]>([]);
 
   const [form, setForm] = useState({
     destinatario: "permissionario", tipo: "irregularidade", origem: "concessionaria",
@@ -88,6 +93,8 @@ function Body() {
         const url = (data?.valor as { url?: string } | null)?.url;
         setLogo(await carregarLogo(url));
       });
+    sb.from("motivo_notificacao").select("id,nome,tipo,base_legal,descricao_padrao").eq("ativo", true).order("ordem")
+      .then(({ data }) => setMotivos((data as Motivo[]) ?? []));
     carregar();
   }, [carregar]);
 
@@ -174,6 +181,20 @@ function Body() {
             </select>
           </Campo>
         )}
+
+        <Campo label="Motivo (modelo do Decreto)">
+          <select
+            className="inp"
+            value=""
+            onChange={(e) => {
+              const m = motivos.find((x) => x.id === e.target.value);
+              if (m) setForm({ ...form, tipo: m.tipo, assunto: m.nome, descricao: m.descricao_padrao ?? form.descricao, base_legal: m.base_legal ?? "" });
+            }}
+          >
+            <option value="">— escolher motivo (preenche tipo, assunto e base legal) —</option>
+            {motivos.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+          </select>
+        </Campo>
 
         <div className="grid grid-cols-3 gap-3">
           <Campo label="Tipo">
