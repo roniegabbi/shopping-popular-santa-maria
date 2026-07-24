@@ -29,6 +29,7 @@ export default function ContasPage() {
 function Body() {
   const [contas, setContas] = useState<Conta[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
     tipo: "agua",
     mes: String(hoje.getMonth() + 1),
@@ -56,14 +57,41 @@ function Body() {
     const competencia = `${form.ano}-${String(Number(form.mes)).padStart(2, "0")}-01`;
     const unidade = form.tipo === "agua" ? "m³" : "kWh";
     const fornecedor = form.tipo === "agua" ? "Corsan" : "RGE";
-    const { error } = await sb.from("conta_utilidade").insert({
+    const dados = {
       tipo: form.tipo, competencia, valor: valorNum,
       consumo: form.consumo ? Number(form.consumo) : null, unidade,
       vencimento: form.vencimento || null, status: form.status, fornecedor,
-    });
+    };
+    const { error } = editId
+      ? await sb.from("conta_utilidade").update(dados).eq("id", editId)
+      : await sb.from("conta_utilidade").insert(dados);
     if (error) { setMsg("Erro ao salvar: " + error.message); return; }
-    setMsg(`Conta lançada: ${form.tipo === "agua" ? "Água" : "Energia"} · ${MESES[Number(form.mes) - 1]}/${form.ano} · ${BRL.format(valorNum)}.`);
+    setMsg(`${editId ? "Conta atualizada" : "Conta lançada"}: ${form.tipo === "agua" ? "Água" : "Energia"} · ${MESES[Number(form.mes) - 1]}/${form.ano} · ${BRL.format(valorNum)}.`);
     setForm({ ...form, valor: "", consumo: "", vencimento: "" });
+    setEditId(null);
+    carregar();
+  }
+
+  function editar(c: Conta) {
+    const d = new Date(c.competencia);
+    setForm({
+      tipo: c.tipo, mes: String(d.getMonth() + 1), ano: String(d.getFullYear()),
+      valor: Number(c.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      consumo: c.consumo != null ? String(c.consumo) : "", vencimento: c.vencimento ?? "", status: c.status,
+    });
+    setEditId(c.id);
+    setMsg(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function cancelarEdicao() {
+    setEditId(null);
+    setForm({ ...form, valor: "", consumo: "", vencimento: "" });
+    setMsg(null);
+  }
+  async function excluir(id: string) {
+    if (!confirm("Excluir esta conta?")) return;
+    await sb.from("conta_utilidade").delete().eq("id", id);
+    if (editId === id) setEditId(null);
     carregar();
   }
 
@@ -86,7 +114,7 @@ function Body() {
       </div>
 
       <form onSubmit={registrar} className="rounded-2xl border border-line bg-white p-5">
-        <h3 className="mb-1 font-extrabold text-navy">Lançar conta</h3>
+        <h3 className="mb-1 font-extrabold text-navy">{editId ? "Editar conta" : "Lançar conta"}</h3>
         <p className="mb-4 text-[13px] text-muted">Escolha o tipo, o mês/ano de referência e informe o valor da fatura.</p>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -128,7 +156,10 @@ function Body() {
         </div>
 
         {msg && <p className="mt-3 text-[13px] font-semibold text-navy">{msg}</p>}
-        <button className="mt-4 rounded-lg bg-accent px-5 py-2.5 font-bold text-white">Lançar conta</button>
+        <div className="mt-4 flex gap-2">
+          <button className="rounded-lg bg-accent px-5 py-2.5 font-bold text-white">{editId ? "Salvar alterações" : "Lançar conta"}</button>
+          {editId && <button type="button" onClick={cancelarEdicao} className="rounded-lg border border-line px-5 py-2.5 font-semibold text-muted">Cancelar</button>}
+        </div>
       </form>
 
       {contas.length === 0 ? (
@@ -148,7 +179,13 @@ function Body() {
                   <td className="p-3 font-semibold">{BRL.format(Number(c.valor || 0))}</td>
                   <td className="p-3">{c.vencimento ? new Date(c.vencimento).toLocaleDateString("pt-BR") : "—"}</td>
                   <td className="p-3"><span className={`rounded-full px-2.5 py-1 text-[11.5px] font-bold ${c.status === "paga" ? "bg-[#e5f3ea] text-ok" : c.status === "em_atraso" ? "bg-[#fbe4e1] text-bad" : "bg-[#fbf1d6] text-[#8a6a0f]"}`}>{STATUS[c.status] ?? c.status}</span></td>
-                  <td className="p-3">{c.status !== "paga" && <button onClick={() => pagar(c.id)} className="text-[12px] font-semibold text-ok">marcar paga</button>}</td>
+                  <td className="p-3">
+                    <div className="flex flex-col gap-1">
+                      <button onClick={() => editar(c)} className="text-left text-[12px] font-semibold text-brand">editar</button>
+                      {c.status !== "paga" && <button onClick={() => pagar(c.id)} className="text-left text-[12px] font-semibold text-ok">marcar paga</button>}
+                      <button onClick={() => excluir(c.id)} className="text-left text-[12px] font-semibold text-bad">excluir</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

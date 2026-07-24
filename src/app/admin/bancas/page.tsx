@@ -8,6 +8,7 @@ import { gerarRelatorioCadastroBancas, type ItemCadastro } from "@/lib/relatorio
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 import type { Agente } from "@/lib/notificacaoPdf";
 import { cpfComErro } from "@/lib/cpf";
+import PermEditModal from "./PermEditModal";
 
 const sb = createSupabase();
 const STATUSES: BancaStatus[] = ["ocupada", "vaga", "aguardando_sorteio", "em_regularizacao", "em_cassacao", "lacrada"];
@@ -34,6 +35,7 @@ function Body() {
   const [logo, setLogo] = useState<Logo | null>(null);
   const [q, setQ] = useState("");
   const [fStatus, setFStatus] = useState("todos");
+  const [editar, setEditar] = useState<{ id: string; numero: string } | null>(null);
 
   const carregar = useCallback(async () => {
     const { data } = await sb.from("banca").select("id,numero,pavimento,status,segmento_id");
@@ -124,10 +126,10 @@ function Body() {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-line bg-white">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[780px] text-sm">
           <thead>
             <tr className="bg-navy text-left text-xs text-white">
-              <th className="p-3">Banca</th><th className="p-3">Pavimento</th><th className="p-3">Permissionário</th><th className="p-3">Situação</th><th className="p-3">Segmento</th>
+              <th className="p-3">Banca</th><th className="p-3">Pavimento</th><th className="p-3">Permissionário</th><th className="p-3">Situação</th><th className="p-3">Segmento</th><th className="p-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -155,11 +157,23 @@ function Body() {
                     {segs.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
                   </select>
                 </td>
+                <td className="p-3">
+                  <button onClick={() => setEditar({ id: r.id, numero: r.numero })} className="text-[12.5px] font-semibold text-brand">editar</button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {editar && (
+        <PermEditModal
+          bancaId={editar.id}
+          numero={editar.numero}
+          onClose={() => setEditar(null)}
+          onSaved={() => { setEditar(null); carregar(); }}
+        />
+      )}
 
       <style jsx>{`:global(.inp){border:1px solid #eae2f2;border-radius:9px;padding:9px 11px;font-size:14px;background:#fff;}`}</style>
     </div>
