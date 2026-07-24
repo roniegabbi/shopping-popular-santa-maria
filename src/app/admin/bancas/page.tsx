@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabase } from "@/lib/supabase";
 import AdminGuard from "../_components/AdminGuard";
 import { STATUS_LABEL, STATUS_COLOR, type BancaStatus } from "@/lib/types";
-import { gerarRelatorioSituacoes } from "@/lib/relatorioSituacoesPdf";
+import { gerarRelatorioCadastroBancas, type ItemCadastro } from "@/lib/relatorioSituacoesPdf";
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 import type { Agente } from "@/lib/notificacaoPdf";
 
@@ -14,6 +14,7 @@ const PAVL: Record<string, string> = { terreo: "Térreo", pav1: "1º Pav.", pav2
 
 type Row = { id: string; numero: string; pavimento: string; status: BancaStatus; segmento_id: string | null };
 type Seg = { id: string; nome: string };
+type PermInfo = { permId: string; nome: string; status: string; cpf: string | null; rg: string | null; endereco: string | null; bairro: string | null; auxiliar: string | null };
 
 export default function BancasPage() {
   return (
@@ -26,7 +27,7 @@ export default function BancasPage() {
 function Body() {
   const [rows, setRows] = useState<Row[]>([]);
   const [segs, setSegs] = useState<Seg[]>([]);
-  const [perm, setPerm] = useState<Record<string, { nome: string; status: string }>>({});
+  const [perm, setPerm] = useState<Record<string, PermInfo>>({});
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
   const [logo, setLogo] = useState<Logo | null>(null);
@@ -38,9 +39,13 @@ function Body() {
     const rs = (data as Row[]) ?? [];
     rs.sort((a, b) => Number(a.numero) - Number(b.numero));
     setRows(rs);
-    const { data: ps } = await sb.from("permissionario").select("banca_id,nome,status");
-    const map: Record<string, { nome: string; status: string }> = {};
-    for (const p of (ps as { banca_id: string; nome: string; status: string }[]) ?? []) if (p.banca_id) map[p.banca_id] = { nome: p.nome, status: p.status };
+    const { data: ps } = await sb.from("permissionario").select("id,banca_id,nome,status,cpf,rg,endereco,bairro");
+    const { data: auxs } = await sb.from("auxiliar").select("permissionario_id,nome");
+    const auxMap: Record<string, string> = {};
+    for (const a of (auxs as { permissionario_id: string; nome: string }[]) ?? []) if (a.permissionario_id && !auxMap[a.permissionario_id]) auxMap[a.permissionario_id] = a.nome;
+    const map: Record<string, PermInfo> = {};
+    for (const p of (ps as { id: string; banca_id: string | null; nome: string; status: string; cpf: string | null; rg: string | null; endereco: string | null; bairro: string | null }[]) ?? [])
+      if (p.banca_id) map[p.banca_id] = { permId: p.id, nome: p.nome, status: p.status, cpf: p.cpf, rg: p.rg, endereco: p.endereco, bairro: p.bairro, auxiliar: auxMap[p.id] ?? null };
     setPerm(map);
   }, []);
 
@@ -57,18 +62,22 @@ function Body() {
   }, [carregar]);
 
   function gerarRelatorio() {
-    const porStatus = new Map<BancaStatus, { banca: string; nome: string; detalhe: string }[]>();
+    const porStatus = new Map<BancaStatus, ItemCadastro[]>();
     STATUSES.forEach((s) => porStatus.set(s, []));
     rows.forEach((r) => {
       const p = perm[r.id];
       porStatus.get(r.status)?.push({
         banca: r.numero,
-        nome: p?.nome ?? (r.status === "vaga" || r.status === "aguardando_sorteio" ? "(vaga)" : "—"),
-        detalhe: PAVL[r.pavimento] ?? r.pavimento,
+        nome: p?.nome ?? (r.status === "vaga" || r.status === "aguardando_sorteio" ? "(banca vaga)" : "—"),
+        cpf: p?.cpf ?? null,
+        rg: p?.rg ?? null,
+        endereco: p?.endereco ?? null,
+        bairro: p?.bairro ?? null,
+        auxiliar: p?.auxiliar ?? null,
       });
     });
     const secoes = STATUSES.filter((s) => (porStatus.get(s)?.length ?? 0) > 0).map((s) => ({ titulo: STATUS_LABEL[s], itens: porStatus.get(s)! }));
-    gerarRelatorioSituacoes({ secoes, titulo: "RELATÓRIO GERAL DE BANCAS — SHOPPING INDEPENDÊNCIA", arquivo: "Relatorio_Bancas", gestor, secretario, logo });
+    gerarRelatorioCadastroBancas({ secoes, titulo: "RELATÓRIO DE CADASTRO DAS BANCAS — SHOPPING INDEPENDÊNCIA", arquivo: "Relatorio_Bancas", gestor, secretario, logo });
   }
 
   async function setStatus(id: string, status: string) {

@@ -80,3 +80,64 @@ export function gerarRelatorioSituacoes(opts: { secoes: SituacaoSecao[]; titulo?
   assinaturas(doc, Math.max(y + 10, 252), opts.gestor, opts.secretario);
   previewPdf(doc, `${opts.arquivo ?? "Relatorio_Situacoes"}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+
+export type ItemCadastro = {
+  banca: string; nome: string; cpf?: string | null; rg?: string | null; endereco?: string | null; bairro?: string | null; auxiliar?: string | null;
+};
+export type SecaoCadastro = { titulo: string; base?: string; itens: ItemCadastro[] };
+
+export function gerarRelatorioCadastroBancas(opts: {
+  secoes: SecaoCadastro[]; titulo?: string; arquivo?: string; gestor?: Agente | null; secretario?: Agente | null; logo?: Logo | null;
+}) {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  let y = cabecalho(doc, opts.logo);
+
+  doc.setFont("times", "bold").setFontSize(13).setTextColor(0, 0, 0);
+  doc.text(opts.titulo ?? "RELATÓRIO DE CADASTRO DAS BANCAS — SHOPPING INDEPENDÊNCIA", W / 2, y, { align: "center" }); y += 6;
+  doc.setFont("times", "normal").setFontSize(9.5).setTextColor(90, 90, 90);
+  doc.text(dataExtenso(), W / 2, y, { align: "center" }); y += 9;
+
+  opts.secoes.forEach((sec) => {
+    if (y > 250) { doc.addPage(); y = 18; }
+    doc.setFillColor(238, 234, 248); doc.rect(M, y - 4, CW, 7, "F");
+    doc.setFont("times", "bold").setFontSize(11).setTextColor(61, 26, 91);
+    doc.text(`${sec.titulo} — ${sec.itens.length}`, M + 2, y + 1); y += 8;
+
+    if (sec.itens.length === 0) {
+      doc.setFont("times", "italic").setFontSize(9).setTextColor(120, 120, 120); doc.text("Nenhum registro.", M + 2, y); y += 7;
+      return;
+    }
+
+    sec.itens.forEach((it) => {
+      if (y > 264) { doc.addPage(); y = 18; }
+      doc.setFont("times", "bold").setFontSize(9.5).setTextColor(20, 20, 20);
+      const head = `Banca ${it.banca}`;
+      doc.text(head, M + 2, y);
+      const hw = doc.getTextWidth(head);
+      doc.setFont("times", "normal");
+      let l1 = ` — ${it.nome}`;
+      if (it.cpf) l1 += `   ·   CPF: ${it.cpf}`;
+      if (it.rg) l1 += `   ·   RG: ${it.rg}`;
+      const linhas = doc.splitTextToSize(l1, CW - hw - 6) as string[];
+      doc.text(linhas, M + 2 + hw, y);
+      y += linhas.length * 4.6;
+
+      const extras: string[] = [];
+      if (it.endereco) extras.push(it.endereco);
+      if (it.bairro) extras.push(it.bairro);
+      if (it.auxiliar) extras.push(`Auxiliar: ${it.auxiliar}`);
+      if (extras.length) {
+        doc.setFontSize(8.3).setTextColor(110, 110, 110);
+        const le = doc.splitTextToSize(extras.join("   ·   "), CW - 8) as string[];
+        doc.text(le, M + 6, y);
+        y += le.length * 4.2;
+      }
+      doc.setDrawColor(238, 234, 248).setLineWidth(0.2); doc.line(M + 2, y + 0.5, W - M - 2, y + 0.5);
+      y += 3;
+    });
+    y += 3;
+  });
+
+  assinaturas(doc, Math.max(y + 8, 252), opts.gestor, opts.secretario);
+  previewPdf(doc, `${opts.arquivo ?? "Relatorio_Cadastro_Bancas"}_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
