@@ -26,6 +26,7 @@ export default async function Home() {
               }}
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-navy/50 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-navy/40 md:hidden" />
           </>
         )}
         <div className="container-page relative z-10">

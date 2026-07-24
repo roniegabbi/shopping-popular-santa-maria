@@ -241,8 +241,8 @@ function Body() {
           {filtrada.length === 0 ? (
             <p className="rounded-2xl border border-line bg-white p-6 text-sm text-muted">Nenhuma notificação registrada ainda.</p>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-line bg-white">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="bg-navy text-left text-xs text-white">
                     <th className="p-3">Destino</th><th className="p-3">Tipo / Assunto</th><th className="p-3">Nº</th>

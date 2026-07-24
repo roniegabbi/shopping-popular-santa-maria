@@ -125,8 +125,8 @@ function Body() {
             Nenhum agente cadastrado. Cadastre ao menos o Gestor e o Secretário para assinar as notificações.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-line bg-white">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="bg-navy text-left text-xs text-white">
                   <th className="p-3">Papel</th>

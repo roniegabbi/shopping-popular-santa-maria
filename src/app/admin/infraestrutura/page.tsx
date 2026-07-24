@@ -146,8 +146,8 @@ function Body() {
       </form>
 
       {reparos.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-line bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <table className="w-full min-w-[640px] text-sm">
             <thead><tr className="bg-navy text-left text-xs text-white">
               <th className="p-3">Reparo</th><th className="p-3">Área</th><th className="p-3">Prioridade</th><th className="p-3">Prazo</th><th className="p-3">Status</th><th className="p-3"></th>
             </tr></thead>

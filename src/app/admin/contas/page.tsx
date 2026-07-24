@@ -87,8 +87,8 @@ function Body() {
       {contas.length === 0 ? (
         <p className="rounded-2xl border border-line bg-white p-6 text-sm text-muted">Nenhuma conta lançada. Use o formulário acima para registrar as faturas de água e energia.</p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-line bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <table className="w-full min-w-[640px] text-sm">
             <thead><tr className="bg-navy text-left text-xs text-white">
               <th className="p-3">Tipo</th><th className="p-3">Competência</th><th className="p-3">Consumo</th><th className="p-3">Valor</th><th className="p-3">Venc.</th><th className="p-3">Status</th><th className="p-3"></th>
             </tr></thead>

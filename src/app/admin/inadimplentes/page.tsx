@@ -173,8 +173,8 @@ function Body() {
       {grupos.length === 0 ? (
         <p className="rounded-2xl border border-line bg-white p-6 text-sm text-muted">Nenhuma inadimplência registrada. Use o formulário acima para lançar competências em atraso.</p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-line bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="bg-navy text-left text-xs text-white">
                 <th className="p-3">Risco</th><th className="p-3">Banca</th><th className="p-3">Permissionário</th>

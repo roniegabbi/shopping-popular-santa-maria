@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { getSiteConfig, cfgUrl } from "@/lib/site";
+import SiteNav from "./_components/SiteNav";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,6 @@ export const metadata: Metadata = {
   description:
     "Vitrine e gestão do Shopping Independência, espaço público de comércio popular de Santa Maria/RS. Iniciativa da SMDE&I.",
 };
-
-const NAV = [
-  { href: "/", label: "Início" },
-  { href: "/mapa", label: "Mapa de Bancas" },
-  { href: "/participar", label: "Como Participar" },
-  { href: "/indicadores", label: "Indicadores" },
-];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cfg = await getSiteConfig();
@@ -42,23 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </small>
               </span>
             </Link>
-            <nav className="ml-auto hidden items-center gap-1 md:flex">
-              {NAV.map((n) => (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  className="rounded-lg px-3 py-2 text-sm font-semibold text-muted hover:bg-[#F1EAF8] hover:text-navy"
-                >
-                  {n.label}
-                </Link>
-              ))}
-              <Link
-                href="/participar"
-                className="ml-1 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white hover:brightness-95"
-              >
-                Quero participar
-              </Link>
-            </nav>
+            <SiteNav />
           </div>
         </header>
 
