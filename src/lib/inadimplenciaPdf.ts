@@ -158,7 +158,7 @@ export function gerarOficioPosicionamento(opts: {
   y += 10;
 
   doc.setFont("times", "normal").setFontSize(11).setTextColor(15, 15, 15);
-  doc.text("À Empresa Concessionária Administradora do Shopping Independência", M, y); y += 6;
+  doc.text("À Concessionária, Gestora do Shopping Independência", M, y); y += 6;
   doc.text("Assunto: Solicitação de posicionamento sobre inadimplência.", M, y); y += 10;
 
   const totalDev = grupos.reduce((s, g) => s + g.total, 0);

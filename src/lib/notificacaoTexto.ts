@@ -44,15 +44,16 @@ export function gerarTextoNotificacao(d: DadosNotificacao): string[] {
 
   if (d.destinatario === "administradora") {
     return [
-      `A empresa concessionária administradora do Shopping Independência fica, por meio deste, NOTIFICADA a, ${prazo}, ${objeto(d)}.`,
-      `A presente notificação fundamenta-se no ${DECRETO} (${base}), competindo à concessionária a apresentação de informações e documentos sempre que solicitada, respeitados os prazos concedidos pela Administração Pública.`,
+      "À Concessionária, Gestora do Shopping Independência,",
+      `Fica essa Concessionária, por meio deste, NOTIFICADA a, ${prazo}, ${objeto(d)}.`,
+      `A presente notificação fundamenta-se no ${DECRETO} (${base}), competindo à Concessionária a apresentação de informações e documentos sempre que solicitada, respeitados os prazos concedidos pela Administração Pública.`,
       `O não atendimento no prazo assinalado ensejará a adoção das medidas administrativas cabíveis.`,
     ];
   }
 
   const cabecalho = d.permissionarioNome
-    ? `Ao(À) Sr.(a) ${d.permissionarioNome}, autorizatário(a) de uso do estande/banca ${banca} do Shopping Independência.`
-    : `Ao(À) autorizatário(a) de uso do estande/banca ${banca} do Shopping Independência.`;
+    ? `Ao(À) Permissionário(a) Sr.(a) ${d.permissionarioNome}, do estande/banca ${banca} do Shopping Independência.`
+    : `Ao(À) Permissionário(a) do estande/banca ${banca} do Shopping Independência.`;
 
   let corpo: string;
   switch (d.tipo) {
