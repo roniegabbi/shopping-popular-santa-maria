@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin/notificacoes", label: "Notificações", key: "notificacoes" },
   { href: "/admin/inadimplentes", label: "Inadimplentes", key: "inadimplentes" },
   { href: "/admin/judicial", label: "Judicial & ACP", key: "judicial" },
+  { href: "/admin/agentes", label: "Agentes & Portarias", key: "agentes" },
   { href: "/admin/identidade", label: "Identidade Visual", key: "identidade" },
 ];
 
