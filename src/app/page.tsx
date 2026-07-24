@@ -63,13 +63,13 @@ export default async function Home() {
             {HOME_CARDS.map((c) => {
               const img = cfgUrl(cfg, c.key);
               return (
-                <div key={c.key} className="overflow-hidden rounded-2xl border border-line bg-white">
+                <div key={c.key} className="flex flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt={c.titulo} className="h-40 w-full object-cover" />
+                    <img src={img} alt={c.titulo} className="aspect-[16/10] w-full object-cover object-center" />
                   ) : (
-                    <div className="flex h-40 items-center justify-center bg-[#F1EAF8] text-4xl">
-                      {c.icon}
+                    <div className="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-navy/10 via-[#F1EAF8] to-white text-5xl">
+                      <span className="opacity-70">{c.icon}</span>
                     </div>
                   )}
                   <div className="p-5">
