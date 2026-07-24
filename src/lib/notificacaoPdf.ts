@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { gerarTextoNotificacao, type DadosNotificacao } from "./notificacaoTexto";
+import { previewPdf, logoFmt, type Logo } from "./pdfPreview";
 
 export type Agente = {
   nome: string;
@@ -12,6 +13,7 @@ export type NotificacaoPdf = DadosNotificacao & {
   numeroOficial?: string | null;
   gestor?: Agente | null;
   secretario?: Agente | null;
+  logo?: Logo | null;
 };
 
 const MESES = [
@@ -34,7 +36,15 @@ export function gerarNotificacaoPDF(n: NotificacaoPdf) {
   const W = 210;
   const margin = 25;
   const cw = W - margin * 2;
-  let y = 20;
+  let y = 16;
+
+  // ---------- Logomarca ----------
+  if (n.logo) {
+    const wmm = 24;
+    const hmm = (wmm * n.logo.h) / n.logo.w;
+    doc.addImage(n.logo.dataUrl, logoFmt(n.logo), W / 2 - wmm / 2, y, wmm, hmm);
+    y += hmm + 3;
+  }
 
   // ---------- Cabeçalho oficial ----------
   doc.setFont("times", "bold").setFontSize(11).setTextColor(20, 20, 40);
@@ -105,5 +115,5 @@ export function gerarNotificacaoPDF(n: NotificacaoPdf) {
   );
 
   const nome = `Notificacao_${numero}${n.bancaNumero ? `_banca${n.bancaNumero}` : ""}.pdf`;
-  doc.save(nome);
+  previewPdf(doc, nome);
 }

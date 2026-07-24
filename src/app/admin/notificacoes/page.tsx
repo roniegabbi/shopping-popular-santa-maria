@@ -5,6 +5,7 @@ import { createSupabase } from "@/lib/supabase";
 import AdminGuard from "../_components/AdminGuard";
 import { gerarTextoNotificacao } from "@/lib/notificacaoTexto";
 import { gerarNotificacaoPDF, type Agente } from "@/lib/notificacaoPdf";
+import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 
 const sb = createSupabase();
 
@@ -52,6 +53,7 @@ function Body() {
   const [permNome, setPermNome] = useState<string | null>(null);
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
+  const [logo, setLogo] = useState<Logo | null>(null);
 
   const [form, setForm] = useState({
     destinatario: "permissionario", tipo: "irregularidade", origem: "concessionaria",
@@ -80,6 +82,11 @@ function Body() {
         const rows = (data as (Agente & { id: string; papel: string })[]) ?? [];
         setGestor(rows.find((r) => r.papel === "gestor_shopping") ?? null);
         setSecretario(rows.find((r) => r.papel === "secretario") ?? null);
+      });
+    sb.from("site_config").select("valor").eq("chave", "logo_prefeitura").maybeSingle()
+      .then(async ({ data }) => {
+        const url = (data?.valor as { url?: string } | null)?.url;
+        setLogo(await carregarLogo(url));
       });
     carregar();
   }, [carregar]);
@@ -127,7 +134,7 @@ function Body() {
   }
 
   function gerarPDF() {
-    gerarNotificacaoPDF({ ...dados, numeroOficial: form.numero_oficial, gestor, secretario });
+    gerarNotificacaoPDF({ ...dados, numeroOficial: form.numero_oficial, gestor, secretario, logo });
   }
 
   function pdfDaLinha(n: Notif) {
@@ -135,7 +142,7 @@ function Body() {
       tipo: n.tipo, destinatario: n.destinatario,
       bancaNumero: n.banca?.numero, permissionarioNome: n.permissionario?.nome,
       prazo: n.prazo, assunto: n.assunto, descricao: n.descricao, baseLegal: n.base_legal,
-      numeroOficial: n.numero_oficial, gestor, secretario,
+      numeroOficial: n.numero_oficial, gestor, secretario, logo,
     });
   }
 

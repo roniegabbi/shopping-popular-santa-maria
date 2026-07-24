@@ -5,6 +5,7 @@ import { createSupabase } from "@/lib/supabase";
 import AdminGuard from "../_components/AdminGuard";
 import { gerarRelatorioInadimplencia, gerarOficioPosicionamento, type GrupoInad } from "@/lib/inadimplenciaPdf";
 import type { Agente } from "@/lib/notificacaoPdf";
+import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 
 const sb = createSupabase();
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -40,6 +41,7 @@ function Body() {
   const [salvando, setSalvando] = useState(false);
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
+  const [logo, setLogo] = useState<Logo | null>(null);
   const [form, setForm] = useState({ banca_id: "", competencia: "", taxa: "", condominio: "", vencimento: "", status: "em_atraso" });
 
   const carregar = useCallback(async () => {
@@ -63,6 +65,8 @@ function Body() {
         setGestor(rows.find((r) => r.papel === "gestor_shopping") ?? null);
         setSecretario(rows.find((r) => r.papel === "secretario") ?? null);
       });
+    sb.from("site_config").select("valor").eq("chave", "logo_prefeitura").maybeSingle()
+      .then(async ({ data }) => setLogo(await carregarLogo((data?.valor as { url?: string } | null)?.url)));
     carregar();
   }, [carregar]);
 
@@ -105,7 +109,7 @@ function Body() {
       base_legal: "Art. 7º e 14, §3º do Decreto",
       gestor_id: gestor?.id ?? null, secretario_id: secretario?.id ?? null,
     });
-    gerarOficioPosicionamento({ grupos: [g], gestor, secretario });
+    gerarOficioPosicionamento({ grupos: [g], gestor, secretario, logo });
   }
 
   const semAgentes = !gestor || !secretario;
@@ -134,9 +138,9 @@ function Body() {
         <Kpi val={String(resumo.risco)} label="acima de 3 cotas (risco de cassação)" cls="text-warn" />
       </div>
       <div className="flex flex-wrap gap-3">
-        <button onClick={() => gerarRelatorioInadimplencia({ resumo, grupos, gestor, secretario })}
+        <button onClick={() => gerarRelatorioInadimplencia({ resumo, grupos, gestor, secretario, logo })}
           className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white">📄 Relatório-panorama (PDF A4)</button>
-        <button onClick={() => gerarOficioPosicionamento({ grupos, gestor, secretario })}
+        <button onClick={() => gerarOficioPosicionamento({ grupos, gestor, secretario, logo })}
           className="rounded-lg border border-navy px-4 py-2.5 text-sm font-bold text-navy" disabled={grupos.length === 0}>
           ✉️ Ofício à Administradora (todos)
         </button>

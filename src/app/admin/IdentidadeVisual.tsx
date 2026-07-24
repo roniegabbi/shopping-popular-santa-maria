@@ -54,6 +54,21 @@ function UploadRow({ item }: { item: Item }) {
     setEstado("ok");
   }
 
+  async function remover() {
+    if (!confirm("Remover esta imagem do site público?")) return;
+    setEstado("enviando");
+    // remove a referência pública
+    await sb.from("site_config").upsert({ chave: item.key, valor: {} }, { onConflict: "chave" });
+    // apaga o arquivo do Storage
+    if (url) {
+      const marker = "/midia/";
+      const i = url.indexOf(marker);
+      if (i >= 0) await sb.storage.from("midia").remove([url.slice(i + marker.length).split("?")[0]]);
+    }
+    setUrl(null);
+    setEstado("idle");
+  }
+
   return (
     <div className="flex items-center gap-4 rounded-xl border border-line bg-white p-4">
       <div className="grid h-16 w-24 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#F1EAF8]">
@@ -80,6 +95,14 @@ function UploadRow({ item }: { item: Item }) {
           }}
         />
       </label>
+      {url && (
+        <button
+          onClick={remover}
+          className="rounded-lg border border-line px-3 py-2 text-sm font-semibold text-bad hover:bg-[#fbe4e1]"
+        >
+          Remover
+        </button>
+      )}
       {estado === "ok" && <span className="text-sm text-green">✓</span>}
       {estado === "erro" && <span className="text-sm text-bad">erro</span>}
     </div>

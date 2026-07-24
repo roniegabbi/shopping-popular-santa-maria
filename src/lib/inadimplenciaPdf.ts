@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { Agente } from "./notificacaoPdf";
+import { previewPdf, logoFmt, type Logo } from "./pdfPreview";
 
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -25,8 +26,14 @@ function portaria(a?: Agente | null) {
 
 const W = 210, M = 20, CW = W - M * 2;
 
-function cabecalho(doc: jsPDF): number {
-  let y = 18;
+function cabecalho(doc: jsPDF, logo?: Logo | null): number {
+  let y = 14;
+  if (logo) {
+    const wmm = 22;
+    const hmm = (wmm * logo.h) / logo.w;
+    doc.addImage(logo.dataUrl, logoFmt(logo), W / 2 - wmm / 2, y, wmm, hmm);
+    y += hmm + 2;
+  }
   doc.setFont("times", "bold").setFontSize(11).setTextColor(20, 20, 40);
   ["ESTADO DO RIO GRANDE DO SUL", "PREFEITURA MUNICIPAL DE SANTA MARIA"].forEach((l) => {
     doc.text(l, W / 2, y, { align: "center" }); y += 5;
@@ -63,11 +70,11 @@ const CORHEX: Record<string, [number, number, number]> = {
 
 // ---------- Relatório panorama ----------
 export function gerarRelatorioInadimplencia(opts: {
-  resumo: Resumo; grupos: GrupoInad[]; gestor?: Agente | null; secretario?: Agente | null;
+  resumo: Resumo; grupos: GrupoInad[]; gestor?: Agente | null; secretario?: Agente | null; logo?: Logo | null;
 }) {
   const { resumo, grupos } = opts;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let y = cabecalho(doc);
+  let y = cabecalho(doc, opts.logo);
 
   doc.setFont("times", "bold").setFontSize(13).setTextColor(0, 0, 0);
   doc.text("RELATÓRIO DE INADIMPLÊNCIA — SHOPPING INDEPENDÊNCIA", W / 2, y, { align: "center" });
@@ -134,16 +141,16 @@ export function gerarRelatorioInadimplencia(opts: {
   });
 
   assinaturas(doc, Math.max(y + 24, 250), opts.gestor, opts.secretario);
-  doc.save(`Relatorio_Inadimplencia_${new Date().toISOString().slice(0, 10)}.pdf`);
+  previewPdf(doc, `Relatorio_Inadimplencia_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 // ---------- Ofício à Administradora solicitando posicionamento ----------
 export function gerarOficioPosicionamento(opts: {
-  grupos: GrupoInad[]; numeroOficio?: string; gestor?: Agente | null; secretario?: Agente | null;
+  grupos: GrupoInad[]; numeroOficio?: string; gestor?: Agente | null; secretario?: Agente | null; logo?: Logo | null;
 }) {
   const { grupos } = opts;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let y = cabecalho(doc);
+  let y = cabecalho(doc, opts.logo);
 
   const num = opts.numeroOficio || "____";
   doc.setFont("times", "bold").setFontSize(12).setTextColor(0, 0, 0);
@@ -182,5 +189,5 @@ export function gerarOficioPosicionamento(opts: {
   doc.setFont("times", "normal").setFontSize(11).setTextColor(15, 15, 15);
   doc.text(dataExtenso(), W - M, y, { align: "right" });
   assinaturas(doc, Math.max(y + 22, 250), opts.gestor, opts.secretario);
-  doc.save(`Oficio_Posicionamento_${num}.pdf`);
+  previewPdf(doc, `Oficio_Posicionamento_${num}.pdf`);
 }
