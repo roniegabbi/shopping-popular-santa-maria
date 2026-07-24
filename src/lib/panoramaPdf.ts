@@ -35,7 +35,7 @@ function metricas(doc: jsPDF, y: number, items: { label: string; value: string; 
   const n = items.length; const bw = CW / n;
   items.forEach((it, i) => {
     const x = M + bw * i;
-    doc.setDrawColor(225, 220, 235).setLineWidth(0.3); doc.roundRect(x + 1, y, bw - 2, 16, 2, 2);
+    doc.setDrawColor(225, 220, 235).setLineWidth(0.3); doc.roundedRect(x + 1, y, bw - 2, 16, 2, 2);
     doc.setFont("times", "bold").setFontSize(15).setTextColor(...it.cor); doc.text(it.value, x + bw / 2, y + 7, { align: "center" });
     doc.setFont("times", "normal").setFontSize(7.5).setTextColor(90, 90, 90);
     doc.text(doc.splitTextToSize(it.label, bw - 4), x + bw / 2, y + 12, { align: "center" });
