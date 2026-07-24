@@ -36,8 +36,8 @@ export default async function Home() {
         </div>
       </section>
 
-      <div className="container-page">
-        <div className="-mt-9 grid grid-cols-2 overflow-hidden rounded-2xl border border-line shadow-soft md:grid-cols-4">
+      <div className="container-page relative z-10">
+        <div className="-mt-9 grid grid-cols-2 overflow-hidden rounded-2xl border border-line bg-white shadow-soft md:grid-cols-4">
           {[
             [total, "bancas no total"],
             [ocupadas, "bancas ocupadas"],
