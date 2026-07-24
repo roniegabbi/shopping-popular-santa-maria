@@ -7,6 +7,7 @@ import { STATUS_LABEL, STATUS_COLOR, type BancaStatus } from "@/lib/types";
 import { gerarRelatorioCadastroBancas, type ItemCadastro } from "@/lib/relatorioSituacoesPdf";
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 import type { Agente } from "@/lib/notificacaoPdf";
+import { cpfComErro } from "@/lib/cpf";
 
 const sb = createSupabase();
 const STATUSES: BancaStatus[] = ["ocupada", "vaga", "aguardando_sorteio", "em_regularizacao", "em_cassacao", "lacrada"];
@@ -70,6 +71,7 @@ function Body() {
         banca: r.numero,
         nome: p?.nome ?? (r.status === "vaga" || r.status === "aguardando_sorteio" ? "(banca vaga)" : "—"),
         cpf: p?.cpf ?? null,
+        cpfInvalido: cpfComErro(p?.cpf),
         rg: p?.rg ?? null,
         endereco: p?.endereco ?? null,
         bairro: p?.bairro ?? null,
@@ -94,6 +96,7 @@ function Body() {
     () => rows.filter((r) => (fStatus === "todos" || r.status === fStatus) && (!q || r.numero.includes(q))),
     [rows, fStatus, q]
   );
+  const cpfErros = rows.filter((r) => cpfComErro(perm[r.id]?.cpf)).length;
 
   return (
     <div className="grid gap-5">
@@ -101,6 +104,12 @@ function Body() {
         Altere aqui a <b>situação</b> e o <b>segmento</b> de cada banca. A cor no mapa público muda automaticamente
         assim que a página é recarregada.
       </p>
+
+      {cpfErros > 0 && (
+        <p className="rounded-2xl border border-[#f0c0c0] bg-[#fbe4e1] p-3 text-[13px] font-semibold text-bad">
+          ⚠ {cpfErros} CPF(s) com erro de validação — veja o ícone ⚠ na coluna Permissionário. Passe o mouse para ver o CPF.
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <input className="inp max-w-[160px]" placeholder="Buscar nº…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -126,7 +135,12 @@ function Body() {
               <tr key={r.id} className="border-t border-line">
                 <td className="p-3 font-bold text-navy">{r.numero}</td>
                 <td className="p-3">{PAVL[r.pavimento] ?? r.pavimento}</td>
-                <td className="p-3">{perm[r.id]?.nome ?? "—"}</td>
+                <td className="p-3">
+                  {perm[r.id]?.nome ?? "—"}
+                  {cpfComErro(perm[r.id]?.cpf) && (
+                    <span title={`CPF inválido: ${perm[r.id]?.cpf}`} className="ml-1 cursor-help font-bold text-bad">⚠</span>
+                  )}
+                </td>
                 <td className="p-3">
                   <span className="inline-flex items-center gap-2">
                     <i className="h-3 w-3 shrink-0 rounded" style={{ background: STATUS_COLOR[r.status] }} />

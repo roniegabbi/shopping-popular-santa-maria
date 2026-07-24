@@ -82,7 +82,7 @@ export function gerarRelatorioSituacoes(opts: { secoes: SituacaoSecao[]; titulo?
 }
 
 export type ItemCadastro = {
-  banca: string; nome: string; cpf?: string | null; rg?: string | null; endereco?: string | null; bairro?: string | null; auxiliar?: string | null;
+  banca: string; nome: string; cpf?: string | null; cpfInvalido?: boolean; rg?: string | null; endereco?: string | null; bairro?: string | null; auxiliar?: string | null;
 };
 export type SecaoCadastro = { titulo: string; base?: string; itens: ItemCadastro[] };
 
@@ -116,7 +116,7 @@ export function gerarRelatorioCadastroBancas(opts: {
       const hw = doc.getTextWidth(head);
       doc.setFont("times", "normal");
       let l1 = ` — ${it.nome}`;
-      if (it.cpf) l1 += `   ·   CPF: ${it.cpf}`;
+      if (it.cpf) l1 += `   ·   CPF: ${it.cpf}${it.cpfInvalido ? " (!) conferir" : ""}`;
       if (it.rg) l1 += `   ·   RG: ${it.rg}`;
       const linhas = doc.splitTextToSize(l1, CW - hw - 6) as string[];
       doc.text(linhas, M + 2 + hw, y);
