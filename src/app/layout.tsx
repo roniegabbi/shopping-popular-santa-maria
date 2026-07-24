@@ -3,6 +3,8 @@ import Link from "next/link";
 import "./globals.css";
 import { getSiteConfig, cfgUrl } from "@/lib/site";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Shopping Popular · Shopping Independência — Santa Maria",
   description:
