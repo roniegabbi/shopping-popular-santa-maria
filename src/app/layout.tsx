@@ -36,7 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </span>
               )}
               <span className="font-extrabold leading-tight text-navy">
-                Shopping Popular
+                Shopping Independência
                 <small className="block text-[11px] font-medium text-muted">
                   Prefeitura de Santa Maria · SMDE&amp;I
                 </small>
