@@ -15,19 +15,18 @@ export default async function Home() {
     <>
       <section className="relative overflow-hidden bg-gradient-to-br from-navy via-brand to-navy2 py-16 text-white md:py-24">
         {heroImg && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[55%] md:block">
+          <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={heroImg}
-              alt=""
-              className="h-full w-full object-cover object-center"
+            <img src={heroImg} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+            <div
+              className="absolute inset-0"
               style={{
-                WebkitMaskImage: "linear-gradient(to right, transparent, #000 50%)",
-                maskImage: "linear-gradient(to right, transparent, #000 50%)",
+                background:
+                  "linear-gradient(100deg, #3D1A5B 0%, #3D1A5B 28%, rgba(61,26,91,0.92) 44%, rgba(74,33,110,0.66) 60%, rgba(102,45,150,0.34) 78%, rgba(120,55,175,0.16) 100%)",
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/25 to-transparent" />
-          </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-navy/50 to-transparent" />
+          </>
         )}
         <div className="container-page relative z-10">
          <div className="max-w-2xl">

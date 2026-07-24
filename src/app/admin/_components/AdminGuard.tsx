@@ -8,8 +8,11 @@ const sb = createSupabase();
 
 const NAV = [
   { href: "/admin", label: "Dashboard", key: "dashboard" },
+  { href: "/admin/panorama", label: "Panorama (Secretário)", key: "panorama" },
   { href: "/admin/notificacoes", label: "Notificações", key: "notificacoes" },
   { href: "/admin/inadimplentes", label: "Inadimplentes", key: "inadimplentes" },
+  { href: "/admin/contas", label: "Contas (água/energia)", key: "contas" },
+  { href: "/admin/infraestrutura", label: "Infraestrutura", key: "infraestrutura" },
   { href: "/admin/judicial", label: "Judicial & ACP", key: "judicial" },
   { href: "/admin/agentes", label: "Agentes & Portarias", key: "agentes" },
   { href: "/admin/identidade", label: "Identidade Visual", key: "identidade" },
