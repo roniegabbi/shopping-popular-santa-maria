@@ -6,6 +6,7 @@ import AdminGuard from "../_components/AdminGuard";
 import { gerarPanoramaPDF } from "@/lib/panoramaPdf";
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 import type { Agente } from "@/lib/notificacaoPdf";
+import FinanceiroChart from "./FinanceiroChart";
 
 const sb = createSupabase();
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -184,6 +185,10 @@ function Body() {
           <Card money v={util.agua + util.energia} l="total utilidades" cor="#3D1A5B" />
           <Card v={util.atraso} l="contas em atraso" cor="#C0392B" />
         </Grid>
+        <div className="mt-4">
+          <h4 className="mb-2 text-[13px] font-bold text-navy">Evolução mensal — despesas (comparativo por ano)</h4>
+          <FinanceiroChart />
+        </div>
       </Secao>
 
       <style jsx>{`:global(.inp){width:100%;border:1px solid #eae2f2;border-radius:9px;padding:8px 10px;font-size:13.5px;background:#fff;margin-bottom:8px;}`}</style>
