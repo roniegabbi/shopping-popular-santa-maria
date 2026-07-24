@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { createSupabase } from "@/lib/supabase";
 import AdminGuard from "../_components/AdminGuard";
+import { gerarPanoramaPDF } from "@/lib/panoramaPdf";
+import { carregarLogo, type Logo } from "@/lib/pdfPreview";
+import type { Agente } from "@/lib/notificacaoPdf";
 
 const sb = createSupabase();
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -24,6 +27,9 @@ function Body() {
   const [c, setC] = useState<Contagens>({});
   const [util, setUtil] = useState({ agua: 0, energia: 0, atraso: 0 });
   const [riscos, setRiscos] = useState<Risco[]>([]);
+  const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
+  const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
+  const [logo, setLogo] = useState<Logo | null>(null);
   const [form, setForm] = useState({ titulo: "", nivel: "medio", origem: "", base_legal: "" });
 
   const carregar = useCallback(async () => {
@@ -60,6 +66,13 @@ function Body() {
 
     const { data: r } = await sb.from("risco_legal").select("id,titulo,nivel,origem,base_legal,mitigado").eq("mitigado", false).order("created_at", { ascending: false });
     setRiscos((r as Risco[]) ?? []);
+
+    const { data: ag } = await sb.from("agente_publico").select("id,nome,cargo,papel,portaria_numero,portaria_data,ativo").eq("ativo", true);
+    const ags = (ag as (Agente & { id: string; papel: string })[]) ?? [];
+    setGestor(ags.find((x) => x.papel === "gestor_shopping") ?? null);
+    setSecretario(ags.find((x) => x.papel === "secretario") ?? null);
+    const { data: lg } = await sb.from("site_config").select("valor").eq("chave", "logo_prefeitura").maybeSingle();
+    setLogo(await carregarLogo((lg?.valor as { url?: string } | null)?.url));
   }, []);
 
   useEffect(() => { carregar(); }, [carregar]);
@@ -85,6 +98,16 @@ function Body() {
 
   return (
     <div className="grid gap-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted">Leitura estratégica consolidada do Shopping Independência.</p>
+        <button
+          onClick={() => gerarPanoramaPDF({ c, util, derivados, riscos, gestor, secretario, logo })}
+          className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy2"
+        >
+          Relatório executivo (PDF)
+        </button>
+      </div>
+
       <Secao titulo="Ocupação e conformidade das bancas">
         <Grid>
           <Card v={c.ocupada} l="ocupadas" cor="#2E8B57" />
