@@ -3,23 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabase } from "@/lib/supabase";
 import AdminGuard from "../_components/AdminGuard";
+import MoedaInput from "../_components/MoedaInput";
+import { BRL, moedaParaNumero } from "@/lib/moeda";
 
 const sb = createSupabase();
-const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const STATUS: Record<string, string> = { em_aberto: "Em aberto", paga: "Paga", em_atraso: "Em atraso", contestada: "Contestada" };
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 const hoje = new Date();
 const ANOS = [hoje.getFullYear() - 2, hoje.getFullYear() - 1, hoje.getFullYear(), hoje.getFullYear() + 1];
-
-function formatarMoeda(bruto: string): string {
-  const digitos = bruto.replace(/\D/g, "");
-  const cents = digitos ? parseInt(digitos, 10) : 0;
-  return (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function moedaParaNumero(v: string): number {
-  return v ? Number(v.replace(/\./g, "").replace(",", ".")) : 0;
-}
 
 type Conta = {
   id: string; tipo: string; competencia: string; valor: number; consumo: number | null;
@@ -116,16 +108,7 @@ function Body() {
           </Campo>
 
           <Campo label="Valor da fatura (R$)">
-            <div className="flex items-center rounded-lg border border-line bg-white px-3">
-              <span className="mr-1 text-sm text-muted">R$</span>
-              <input
-                inputMode="numeric"
-                className="w-full py-2.5 text-sm outline-none"
-                placeholder="0,00"
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: formatarMoeda(e.target.value) })}
-              />
-            </div>
+            <MoedaInput value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} />
           </Campo>
           <Campo label={`Consumo (${form.tipo === "agua" ? "m³" : "kWh"}) — opcional`}>
             <input type="number" step="0.01" className="inp" placeholder={form.tipo === "agua" ? "Ex.: 320" : "Ex.: 5400"} value={form.consumo} onChange={(e) => setForm({ ...form, consumo: e.target.value })} />

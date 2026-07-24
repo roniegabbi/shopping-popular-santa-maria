@@ -6,9 +6,13 @@ import AdminGuard from "../_components/AdminGuard";
 import { gerarRelatorioInadimplencia, gerarOficioPosicionamento, type GrupoInad } from "@/lib/inadimplenciaPdf";
 import type { Agente } from "@/lib/notificacaoPdf";
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
+import MoedaInput from "../_components/MoedaInput";
+import { BRL, moedaParaNumero } from "@/lib/moeda";
 
 const sb = createSupabase();
-const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const hoje = new Date();
+const ANOS = [hoje.getFullYear() - 2, hoje.getFullYear() - 1, hoje.getFullYear(), hoje.getFullYear() + 1];
 
 type Banca = { id: string; numero: string };
 type Pag = {
@@ -42,7 +46,8 @@ function Body() {
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
   const [logo, setLogo] = useState<Logo | null>(null);
-  const [form, setForm] = useState({ banca_id: "", competencia: "", taxa: "", condominio: "", vencimento: "", status: "em_atraso" });
+  const [msg, setMsg] = useState<string | null>(null);
+  const [form, setForm] = useState({ banca_id: "", mes: String(hoje.getMonth() + 1), ano: String(hoje.getFullYear()), taxa: "", condominio: "", vencimento: "", status: "em_atraso" });
 
   const carregar = useCallback(async () => {
     const { data } = await sb
@@ -89,15 +94,22 @@ function Body() {
 
   async function registrar(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.banca_id || !form.competencia) return;
+    setMsg(null);
+    if (!form.banca_id) { setMsg("Selecione a banca."); return; }
+    const taxa = moedaParaNumero(form.taxa);
+    const condominio = moedaParaNumero(form.condominio);
+    if (!taxa && !condominio) { setMsg("Informe ao menos a taxa ou o condomínio."); return; }
+    const competencia = `${form.ano}-${String(Number(form.mes)).padStart(2, "0")}-01`;
     setSalvando(true);
     const { error } = await sb.from("pagamento").insert({
-      banca_id: form.banca_id, competencia: form.competencia + "-01",
-      taxa: Number(form.taxa || 0), condominio: Number(form.condominio || 0),
+      banca_id: form.banca_id, competencia, taxa, condominio,
       vencimento: form.vencimento || null, status: form.status,
     });
     setSalvando(false);
-    if (!error) { setForm({ ...form, competencia: "", taxa: "", condominio: "", vencimento: "" }); carregar(); }
+    if (error) { setMsg("Erro ao salvar: " + error.message); return; }
+    setMsg(`Competência lançada: ${MESES[Number(form.mes) - 1]}/${form.ano} · taxa ${BRL.format(taxa)} + cond. ${BRL.format(condominio)}.`);
+    setForm({ ...form, taxa: "", condominio: "", vencimento: "" });
+    carregar();
   }
 
   // Notifica a Administradora sobre uma banca: cria registro + gera ofício PDF
@@ -149,24 +161,37 @@ function Body() {
 
       {/* form */}
       <form onSubmit={registrar} className="rounded-2xl border border-line bg-white p-5">
-        <h2 className="mb-3 font-extrabold text-navy">Registrar competência / cobrança</h2>
-        <div className="grid gap-3 md:grid-cols-6">
-          <select className="inp md:col-span-2" value={form.banca_id} onChange={(e) => setForm({ ...form, banca_id: e.target.value })}>
-            <option value="">Banca…</option>
-            {bancas.map((b) => <option key={b.id} value={b.id}>Banca {b.numero}</option>)}
-          </select>
-          <input type="month" className="inp" value={form.competencia} onChange={(e) => setForm({ ...form, competencia: e.target.value })} />
-          <input type="number" step="0.01" placeholder="Taxa" className="inp" value={form.taxa} onChange={(e) => setForm({ ...form, taxa: e.target.value })} />
-          <input type="number" step="0.01" placeholder="Condomínio" className="inp" value={form.condominio} onChange={(e) => setForm({ ...form, condominio: e.target.value })} />
-          <select className="inp" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            <option value="em_atraso">Em atraso</option><option value="protestado">Protestado</option>
-            <option value="pago">Pago</option><option value="em_dia">Em dia</option>
-          </select>
+        <h2 className="mb-1 font-extrabold text-navy">Registrar competência / cobrança</h2>
+        <p className="mb-4 text-[13px] text-muted">Selecione a banca e o mês/ano e informe os valores em atraso.</p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Campo label="Banca">
+            <select className="inp" value={form.banca_id} onChange={(e) => setForm({ ...form, banca_id: e.target.value })}>
+              <option value="">Selecione…</option>
+              {bancas.map((b) => <option key={b.id} value={b.id}>Banca {b.numero}</option>)}
+            </select>
+          </Campo>
+          <Campo label="Mês de referência">
+            <select className="inp" value={form.mes} onChange={(e) => setForm({ ...form, mes: e.target.value })}>
+              {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+          </Campo>
+          <Campo label="Ano">
+            <select className="inp" value={form.ano} onChange={(e) => setForm({ ...form, ano: e.target.value })}>
+              {ANOS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </Campo>
+          <Campo label="Taxa de ocupação (R$)"><MoedaInput value={form.taxa} onChange={(v) => setForm({ ...form, taxa: v })} /></Campo>
+          <Campo label="Condomínio (R$)"><MoedaInput value={form.condominio} onChange={(v) => setForm({ ...form, condominio: v })} /></Campo>
+          <Campo label="Situação">
+            <select className="inp" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+              <option value="em_atraso">Em atraso</option><option value="protestado">Protestado</option>
+              <option value="pago">Pago</option><option value="em_dia">Em dia</option>
+            </select>
+          </Campo>
+          <Campo label="Vencimento — opcional"><input type="date" className="inp" value={form.vencimento} onChange={(e) => setForm({ ...form, vencimento: e.target.value })} /></Campo>
         </div>
-        <div className="mt-3 flex items-center gap-3">
-          <input type="date" className="inp max-w-[200px]" value={form.vencimento} onChange={(e) => setForm({ ...form, vencimento: e.target.value })} />
-          <button disabled={salvando} className="rounded-lg bg-accent px-4 py-2.5 font-bold text-white disabled:opacity-60">{salvando ? "Salvando…" : "Registrar"}</button>
-        </div>
+        {msg && <p className="mt-3 text-[13px] font-semibold text-navy">{msg}</p>}
+        <button disabled={salvando} className="mt-4 rounded-lg bg-accent px-5 py-2.5 font-bold text-white disabled:opacity-60">{salvando ? "Salvando…" : "Registrar"}</button>
       </form>
 
       {/* lista */}
@@ -222,5 +247,14 @@ function Kpi({ val, label, cls }: { val: string; label: string; cls: string }) {
       <b className={`block text-2xl font-extrabold ${cls}`}>{val}</b>
       <span className="text-[12.5px] text-muted">{label}</span>
     </div>
+  );
+}
+
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[12.5px] font-bold text-navy">{label}</span>
+      {children}
+    </label>
   );
 }
