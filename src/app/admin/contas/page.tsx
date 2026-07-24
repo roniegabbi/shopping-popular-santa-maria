@@ -6,8 +6,20 @@ import AdminGuard from "../_components/AdminGuard";
 
 const sb = createSupabase();
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
 const STATUS: Record<string, string> = { em_aberto: "Em aberto", paga: "Paga", em_atraso: "Em atraso", contestada: "Contestada" };
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+const hoje = new Date();
+const ANOS = [hoje.getFullYear() - 2, hoje.getFullYear() - 1, hoje.getFullYear(), hoje.getFullYear() + 1];
+
+function formatarMoeda(bruto: string): string {
+  const digitos = bruto.replace(/\D/g, "");
+  const cents = digitos ? parseInt(digitos, 10) : 0;
+  return (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function moedaParaNumero(v: string): number {
+  return v ? Number(v.replace(/\./g, "").replace(",", ".")) : 0;
+}
 
 type Conta = {
   id: string; tipo: string; competencia: string; valor: number; consumo: number | null;
@@ -24,7 +36,16 @@ export default function ContasPage() {
 
 function Body() {
   const [contas, setContas] = useState<Conta[]>([]);
-  const [form, setForm] = useState({ tipo: "agua", competencia: "", valor: "", consumo: "", vencimento: "", status: "em_aberto" });
+  const [msg, setMsg] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    tipo: "agua",
+    mes: String(hoje.getMonth() + 1),
+    ano: String(hoje.getFullYear()),
+    valor: "",
+    consumo: "",
+    vencimento: "",
+    status: "em_aberto",
+  });
 
   const carregar = useCallback(async () => {
     const { data } = await sb.from("conta_utilidade")
@@ -37,15 +58,20 @@ function Body() {
 
   async function registrar(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.competencia) return;
+    setMsg(null);
+    const valorNum = moedaParaNumero(form.valor);
+    if (!valorNum) { setMsg("Informe o valor da conta (ex.: 2.000,00)."); return; }
+    const competencia = `${form.ano}-${String(Number(form.mes)).padStart(2, "0")}-01`;
     const unidade = form.tipo === "agua" ? "m³" : "kWh";
     const fornecedor = form.tipo === "agua" ? "Corsan" : "RGE";
-    await sb.from("conta_utilidade").insert({
-      tipo: form.tipo, competencia: form.competencia + "-01", valor: Number(form.valor || 0),
-      consumo: form.consumo ? Number(form.consumo) : null, unidade, vencimento: form.vencimento || null,
-      status: form.status, fornecedor,
+    const { error } = await sb.from("conta_utilidade").insert({
+      tipo: form.tipo, competencia, valor: valorNum,
+      consumo: form.consumo ? Number(form.consumo) : null, unidade,
+      vencimento: form.vencimento || null, status: form.status, fornecedor,
     });
-    setForm({ ...form, competencia: "", valor: "", consumo: "", vencimento: "" });
+    if (error) { setMsg("Erro ao salvar: " + error.message); return; }
+    setMsg(`Conta lançada: ${form.tipo === "agua" ? "Água" : "Energia"} · ${MESES[Number(form.mes) - 1]}/${form.ano} · ${BRL.format(valorNum)}.`);
+    setForm({ ...form, valor: "", consumo: "", vencimento: "" });
     carregar();
   }
 
@@ -68,20 +94,58 @@ function Body() {
       </div>
 
       <form onSubmit={registrar} className="rounded-2xl border border-line bg-white p-5">
-        <h3 className="mb-3 font-extrabold text-navy">Lançar conta</h3>
-        <div className="grid gap-3 md:grid-cols-6">
-          <select className="inp" value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>
-            <option value="agua">Água (Corsan)</option><option value="energia">Energia (RGE)</option>
-          </select>
-          <input type="month" className="inp" value={form.competencia} onChange={(e) => setForm({ ...form, competencia: e.target.value })} />
-          <input type="number" step="0.01" placeholder="Valor R$" className="inp" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} />
-          <input type="number" step="0.01" placeholder={form.tipo === "agua" ? "Consumo m³" : "Consumo kWh"} className="inp" value={form.consumo} onChange={(e) => setForm({ ...form, consumo: e.target.value })} />
-          <input type="date" className="inp" value={form.vencimento} onChange={(e) => setForm({ ...form, vencimento: e.target.value })} />
-          <select className="inp" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            <option value="em_aberto">Em aberto</option><option value="paga">Paga</option><option value="em_atraso">Em atraso</option><option value="contestada">Contestada</option>
-          </select>
+        <h3 className="mb-1 font-extrabold text-navy">Lançar conta</h3>
+        <p className="mb-4 text-[13px] text-muted">Escolha o tipo, o mês/ano de referência e informe o valor da fatura.</p>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Campo label="Tipo de conta">
+            <select className="inp" value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>
+              <option value="agua">Água — Corsan</option>
+              <option value="energia">Energia — RGE</option>
+            </select>
+          </Campo>
+          <Campo label="Mês de referência">
+            <select className="inp" value={form.mes} onChange={(e) => setForm({ ...form, mes: e.target.value })}>
+              {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+          </Campo>
+          <Campo label="Ano">
+            <select className="inp" value={form.ano} onChange={(e) => setForm({ ...form, ano: e.target.value })}>
+              {ANOS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </Campo>
+
+          <Campo label="Valor da fatura (R$)">
+            <div className="flex items-center rounded-lg border border-line bg-white px-3">
+              <span className="mr-1 text-sm text-muted">R$</span>
+              <input
+                inputMode="numeric"
+                className="w-full py-2.5 text-sm outline-none"
+                placeholder="0,00"
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: formatarMoeda(e.target.value) })}
+              />
+            </div>
+          </Campo>
+          <Campo label={`Consumo (${form.tipo === "agua" ? "m³" : "kWh"}) — opcional`}>
+            <input type="number" step="0.01" className="inp" placeholder={form.tipo === "agua" ? "Ex.: 320" : "Ex.: 5400"} value={form.consumo} onChange={(e) => setForm({ ...form, consumo: e.target.value })} />
+          </Campo>
+          <Campo label="Vencimento — opcional">
+            <input type="date" className="inp" value={form.vencimento} onChange={(e) => setForm({ ...form, vencimento: e.target.value })} />
+          </Campo>
+
+          <Campo label="Situação">
+            <select className="inp" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+              <option value="em_aberto">Em aberto</option>
+              <option value="paga">Paga</option>
+              <option value="em_atraso">Em atraso</option>
+              <option value="contestada">Contestada</option>
+            </select>
+          </Campo>
         </div>
-        <button className="mt-3 rounded-lg bg-accent px-4 py-2.5 font-bold text-white">Lançar conta</button>
+
+        {msg && <p className="mt-3 text-[13px] font-semibold text-navy">{msg}</p>}
+        <button className="mt-4 rounded-lg bg-accent px-5 py-2.5 font-bold text-white">Lançar conta</button>
       </form>
 
       {contas.length === 0 ? (
@@ -90,15 +154,15 @@ function Body() {
         <div className="overflow-x-auto rounded-2xl border border-line bg-white">
           <table className="w-full min-w-[640px] text-sm">
             <thead><tr className="bg-navy text-left text-xs text-white">
-              <th className="p-3">Tipo</th><th className="p-3">Competência</th><th className="p-3">Consumo</th><th className="p-3">Valor</th><th className="p-3">Venc.</th><th className="p-3">Status</th><th className="p-3"></th>
+              <th className="p-3">Tipo</th><th className="p-3">Competência</th><th className="p-3">Consumo</th><th className="p-3">Valor</th><th className="p-3">Venc.</th><th className="p-3">Situação</th><th className="p-3"></th>
             </tr></thead>
             <tbody>
               {contas.map((c) => (
                 <tr key={c.id} className="border-t border-line">
                   <td className="p-3 font-bold" style={{ color: c.tipo === "agua" ? "#1F9BD4" : "#C8961E" }}>{c.tipo === "agua" ? "Água" : "Energia"}<span className="block text-[11px] font-normal text-muted">{c.fornecedor}</span></td>
-                  <td className="p-3">{new Date(c.competencia).toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" })}</td>
+                  <td className="p-3">{MESES[new Date(c.competencia).getMonth()]}/{new Date(c.competencia).getFullYear()}</td>
                   <td className="p-3">{c.consumo != null ? `${c.consumo} ${c.unidade ?? ""}` : "—"}</td>
-                  <td className="p-3">{BRL.format(Number(c.valor || 0))}</td>
+                  <td className="p-3 font-semibold">{BRL.format(Number(c.valor || 0))}</td>
                   <td className="p-3">{c.vencimento ? new Date(c.vencimento).toLocaleDateString("pt-BR") : "—"}</td>
                   <td className="p-3"><span className={`rounded-full px-2.5 py-1 text-[11.5px] font-bold ${c.status === "paga" ? "bg-[#e5f3ea] text-ok" : c.status === "em_atraso" ? "bg-[#fbe4e1] text-bad" : "bg-[#fbf1d6] text-[#8a6a0f]"}`}>{STATUS[c.status] ?? c.status}</span></td>
                   <td className="p-3">{c.status !== "paga" && <button onClick={() => pagar(c.id)} className="text-[12px] font-semibold text-ok">marcar paga</button>}</td>
@@ -111,6 +175,15 @@ function Body() {
 
       <style jsx>{`:global(.inp){width:100%;border:1px solid #eae2f2;border-radius:9px;padding:9px 11px;font-size:14px;background:#fff;}`}</style>
     </div>
+  );
+}
+
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[12.5px] font-bold text-navy">{label}</span>
+      {children}
+    </label>
   );
 }
 
