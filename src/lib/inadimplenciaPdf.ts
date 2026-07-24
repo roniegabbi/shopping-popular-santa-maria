@@ -91,11 +91,11 @@ export function gerarRelatorioInadimplencia(opts: {
 
   // tabela header
   const cols = [
-    { t: "Banca", x: M, w: 20 },
-    { t: "Permissionário", x: M + 20, w: 78 },
-    { t: "Cotas", x: M + 98, w: 20 },
-    { t: "Total devido", x: M + 118, w: 30 },
-    { t: "Situação", x: M + 148, w: CW - 148 + M - M },
+    { t: "Banca", x: M, w: 16 },
+    { t: "Permissionário", x: M + 16, w: 68 },
+    { t: "Cotas", x: M + 84, w: 16 },
+    { t: "Total devido", x: M + 100, w: 28 },
+    { t: "Situação", x: M + 128, w: 42 },
   ];
   function headerRow() {
     doc.setFillColor(31, 56, 100);
@@ -178,10 +178,12 @@ export function gerarOficioPosicionamento(opts: {
     doc.setFont("times", "bold").setFontSize(9.5).setTextColor(40, 40, 40);
     doc.text("Bancas em atraso:", M, y); y += 5;
     doc.setFont("times", "normal").setFontSize(9.5).setTextColor(20, 20, 20);
-    grupos.slice(0, 20).forEach((g) => {
-      if (y > 250) { doc.addPage(); y = 20; }
-      doc.text(`• Banca ${g.numero} — ${g.nome || "—"} — ${g.cotas} cota(s) — ${BRL.format(g.total)} (${g.nivelLabel})`, M + 2, y);
-      y += 5;
+    grupos.slice(0, 24).forEach((g) => {
+      const linha = `• Banca ${g.numero} — ${g.nome || "—"} — ${g.cotas} cota(s) — ${BRL.format(g.total)} (${g.nivelLabel})`;
+      const ls = doc.splitTextToSize(linha, CW - 4) as string[];
+      if (y + ls.length * 5 > 258) { doc.addPage(); y = 20; }
+      doc.text(ls, M + 2, y);
+      y += ls.length * 5;
     });
   }
 

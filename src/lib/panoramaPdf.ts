@@ -84,7 +84,7 @@ export function gerarPanoramaPDF(d: PanoramaDados) {
 
   y = subtitulo(doc, y, "Riscos legais");
   y = metricas(doc, y, [
-    { label: "óbitos → cassação", value: String(d.c.falecidos ?? 0), cor: g([32,36,43]) },
+    { label: "óbitos p/ cassação", value: String(d.c.falecidos ?? 0), cor: g([32,36,43]) },
     { label: "não recadastrados", value: String(d.c.naoRecad ?? 0), cor: g([200,150,20]) },
     { label: "notificações abertas", value: String(d.c.notif ?? 0), cor: g([200,150,20]) },
     { label: "processos ativos", value: String(d.c.pjAtivos ?? 0), cor: g([192,57,43]) },
