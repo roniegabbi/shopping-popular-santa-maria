@@ -7,6 +7,7 @@ import { gerarPanoramaPDF } from "@/lib/panoramaPdf";
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 import type { Agente } from "@/lib/notificacaoPdf";
 import FinanceiroChart from "./FinanceiroChart";
+import ArrecadacaoChart from "./ArrecadacaoChart";
 import { gerarRelatorioSituacoes, type SituacaoSecao } from "@/lib/relatorioSituacoesPdf";
 
 const sb = createSupabase();
@@ -248,6 +249,10 @@ function Body() {
         <div className="mt-4">
           <h4 className="mb-2 text-[13px] font-bold text-navy">Evolução mensal — despesas (comparativo por ano)</h4>
           <FinanceiroChart />
+        </div>
+        <div className="mt-4">
+          <h4 className="mb-2 text-[13px] font-bold text-navy">Arrecadação × Inadimplência (mensal · fonte: Repasses CPC 2020–2024)</h4>
+          <ArrecadacaoChart />
         </div>
       </Secao>
 
