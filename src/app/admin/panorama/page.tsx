@@ -101,7 +101,13 @@ function Body() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">Leitura estratégica consolidada do Shopping Independência.</p>
         <button
-          onClick={() => gerarPanoramaPDF({ c, util, derivados, riscos, gestor, secretario, logo })}
+          onClick={() => {
+            try {
+              gerarPanoramaPDF({ c, util, derivados, riscos, gestor, secretario, logo });
+            } catch (e) {
+              alert("Erro ao gerar PDF: " + (e instanceof Error ? e.message : String(e)));
+            }
+          }}
           className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy2"
         >
           Relatório executivo (PDF)
