@@ -1,8 +1,10 @@
 import { jsPDF } from "jspdf";
 import type { Agente } from "./notificacaoPdf";
 import { previewPdf, logoFmt, type Logo } from "./pdfPreview";
+import { nivelMaturidade, type DimMaturidade } from "./maturidade";
 
 const W = 210, M = 18, CW = W - M * 2;
+const hx = (h: string): [number, number, number] => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const NIVEL: Record<string, [number, number, number]> = { baixo: [46,139,87], medio: [200,150,20], alto: [192,57,43], critico: [32,36,43] };
@@ -54,11 +56,34 @@ function assinaturas(doc: jsPDF, y: number, gestor?: Agente | null, secretario?:
   });
 }
 
+function desenhaMaturidade(doc: jsPDF, y: number, m: { score: number; dims: DimMaturidade[] }): number {
+  const nv = nivelMaturidade(m.score);
+  const [r, g, b] = hx(nv.cor);
+  const boxH = 8 + m.dims.length * 4.7 + 3;
+  doc.setDrawColor(225, 220, 235).setLineWidth(0.3); doc.roundedRect(M, y, CW, boxH, 2, 2);
+  doc.setDrawColor(235, 231, 242); doc.line(M + 30, y + 3, M + 30, y + boxH - 3);
+  doc.setFont("times", "bold").setFontSize(23).setTextColor(r, g, b); doc.text(String(m.score), M + 15, y + 12, { align: "center" });
+  doc.setFont("times", "normal").setFontSize(7.5).setTextColor(110, 110, 110); doc.text("de 100", M + 15, y + 16.5, { align: "center" });
+  doc.setFont("times", "bold").setFontSize(8).setTextColor(r, g, b); doc.text(doc.splitTextToSize(nv.label, 28), M + 15, y + 21, { align: "center" });
+  const dx = M + 34, barX = M + 34 + 60, barW = CW - 60 - 44;
+  let dy = y + 5.5;
+  for (const dim of m.dims) {
+    doc.setFont("times", "normal").setFontSize(7.6).setTextColor(40, 40, 40); doc.text(dim.l, dx, dy + 1.9);
+    doc.setFillColor(238, 238, 245); doc.roundedRect(barX, dy, barW, 2.4, 1, 1, "F");
+    const [rr, gg, bb] = hx(nivelMaturidade(dim.score).cor);
+    doc.setFillColor(rr, gg, bb); doc.roundedRect(barX, dy, (barW * dim.score) / 100, 2.4, 1, 1, "F");
+    doc.setFont("times", "bold").setFontSize(7.6).setTextColor(rr, gg, bb); doc.text(`${Math.round(dim.score)} (p${dim.peso})`, barX + barW + 3, dy + 2.1);
+    dy += 4.7;
+  }
+  return y + boxH + 5;
+}
+
 export type PanoramaDados = {
   c: Record<string, number>;
   util: { agua: number; energia: number; atraso: number };
   derivados: { t: string; s: string; n: string }[];
   riscos: { titulo: string; nivel: string; origem: string | null }[];
+  maturidade?: { score: number; dims: DimMaturidade[] } | null;
   gestor?: Agente | null; secretario?: Agente | null; logo?: Logo | null;
 };
 
@@ -69,9 +94,14 @@ export function gerarPanoramaPDF(d: PanoramaDados) {
   doc.setFont("times", "bold").setFontSize(13).setTextColor(0, 0, 0);
   doc.text("PANORAMA ESTRATÉGICO — SHOPPING INDEPENDÊNCIA", W / 2, y, { align: "center" }); y += 6;
   doc.setFont("times", "normal").setFontSize(9.5).setTextColor(90, 90, 90);
-  doc.text(dataExtenso(), W / 2, y, { align: "center" }); y += 9;
+  doc.text(dataExtenso(), W / 2, y, { align: "center" }); y += 8;
 
   const g = ([r, gg, b]: number[]) => [r, gg, b] as [number, number, number];
+
+  if (d.maturidade) {
+    y = subtitulo(doc, y, "Índice de maturidade do projeto (conformidade legal)");
+    y = desenhaMaturidade(doc, y, d.maturidade);
+  }
 
   y = subtitulo(doc, y, "Ocupação e conformidade das bancas");
   y = metricas(doc, y, [
@@ -99,6 +129,7 @@ export function gerarPanoramaPDF(d: PanoramaDados) {
     y += 8;
   });
 
+  if (y > 232) { doc.addPage(); y = 18; }
   y += 3;
   y = subtitulo(doc, y, "Infraestrutura do prédio");
   y = metricas(doc, y, [
@@ -115,6 +146,7 @@ export function gerarPanoramaPDF(d: PanoramaDados) {
     { label: "contas em atraso", value: String(d.util.atraso), cor: g([192,57,43]) },
   ]);
 
+  if (y > 236) { doc.addPage(); y = 18; }
   assinaturas(doc, Math.max(y + 16, 252), d.gestor, d.secretario);
   previewPdf(doc, `Panorama_Estrategico_${new Date().toISOString().slice(0, 10)}.pdf`);
 }

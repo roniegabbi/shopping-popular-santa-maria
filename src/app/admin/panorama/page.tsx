@@ -11,6 +11,7 @@ import ArrecadacaoChart from "./ArrecadacaoChart";
 import SazonalidadeChart from "./SazonalidadeChart";
 import MaturidadeIndex from "./MaturidadeIndex";
 import { gerarRelatorioSituacoes, type SituacaoSecao } from "@/lib/relatorioSituacoesPdf";
+import { calcularMaturidade, type DimMaturidade } from "@/lib/maturidade";
 
 const sb = createSupabase();
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -44,6 +45,7 @@ function Body() {
   const [secoes, setSecoes] = useState<SituacaoSecao[]>([]);
   const [form, setForm] = useState({ titulo: "", nivel: "medio", origem: "", base_legal: "" });
   const [aba, setAba] = useState("geral");
+  const [maturidade, setMaturidade] = useState<{ score: number; dims: DimMaturidade[] } | null>(null);
 
   const carregar = useCallback(async () => {
     const count = (t: string, col?: string, val?: string) => {
@@ -141,7 +143,26 @@ function Body() {
       const cur = rm.get(rr.competencia) ?? { comp: 0, tot: 0 };
       cur.tot += 1; if (rr.compareceu) cur.comp += 1; rm.set(rr.competencia, cur);
     }
-    setRecad([...rm.entries()].map(([competencia, v]) => ({ competencia, ...v })).sort((a, b) => a.competencia.localeCompare(b.competencia)));
+    const recadArr = [...rm.entries()].map(([competencia, v]) => ({ competencia, ...v })).sort((a, b) => a.competencia.localeCompare(b.competencia));
+    setRecad(recadArr);
+
+    // índice de maturidade (mesma fórmula da aba Maturidade) para o PDF
+    const [{ count: nCons }, { count: nSort }, { count: nInfra }] = await Promise.all([
+      sb.from("conselho_gestor").select("*", { count: "exact", head: true }),
+      sb.from("sorteio").select("*", { count: "exact", head: true }),
+      sb.from("infraestrutura_area").select("*", { count: "exact", head: true }),
+    ]);
+    const { data: atasPubD } = await sb.from("ata").select("id").eq("publico", true);
+    const ultRec = recadArr.length ? recadArr[recadArr.length - 1] : null;
+    setMaturidade(calcularMaturidade({
+      total: nBancas ?? 0, ocupada: bOc.count ?? 0, emCassacao: bCas.count ?? 0,
+      falecidos: pFal.count ?? 0, naoRecad: pNao.count ?? 0, inadBancas: grupos.length,
+      recadPct: ultRec ? (100 * ultRec.comp) / ultRec.tot : null,
+      conselho: nCons ?? 0, gestor: ags.find((x) => x.papel === "gestor_shopping") ? 1 : 0,
+      secretario: ags.find((x) => x.papel === "secretario") ? 1 : 0,
+      atasPub: (atasPubD ?? []).length, sorteios: nSort ?? 0,
+      infraAreas: nInfra ?? 0, infraCriticas: iCr.count ?? 0, procCassacao: (procs as { status: string }[] ?? []).length,
+    }));
   }, []);
 
   useEffect(() => { carregar(); }, [carregar]);
@@ -186,7 +207,7 @@ function Body() {
         <p className="text-sm text-muted">Leitura estratégica consolidada do Shopping Independência.</p>
         <button
           onClick={() => {
-            try { gerarPanoramaPDF({ c, util, derivados, riscos, gestor, secretario, logo }); }
+            try { gerarPanoramaPDF({ c, util, derivados, riscos, maturidade, gestor, secretario, logo }); }
             catch (e) { alert("Erro ao gerar PDF: " + (e instanceof Error ? e.message : String(e))); }
           }}
           className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy2"

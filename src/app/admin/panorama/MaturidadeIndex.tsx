@@ -2,23 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createSupabase } from "@/lib/supabase";
+import { calcularDimensoes, nivelMaturidade as nivel, type DadosMaturidade as Dados } from "@/lib/maturidade";
 
 const sb = createSupabase();
-
-type Dados = {
-  total: number; ocupada: number; emCassacao: number; falecidos: number; naoRecad: number;
-  inadBancas: number; recadPct: number | null; conselho: number; gestor: number; secretario: number;
-  atasPub: number; sorteios: number; infraAreas: number; infraCriticas: number; procCassacao: number;
-};
-
-const FAIXAS = [
-  { min: 0, label: "Inicial", cor: "#C0392B" },
-  { min: 25, label: "Em estruturação", cor: "#C55A11" },
-  { min: 45, label: "Em consolidação", cor: "#C8961E" },
-  { min: 65, label: "Consolidado", cor: "#1F9BD4" },
-  { min: 82, label: "Referência", cor: "#2E8B57" },
-];
-const nivel = (s: number) => [...FAIXAS].reverse().find((f) => s >= f.min) ?? FAIXAS[0];
 
 export default function MaturidadeIndex() {
   const [d, setD] = useState<Dados | null>(null);
@@ -61,35 +47,7 @@ export default function MaturidadeIndex() {
     })();
   }, []);
 
-  const dims = useMemo(() => {
-    if (!d) return [];
-    const cap = (n: number) => Math.max(0, Math.min(100, n));
-    const pct = (n: number, den: number) => (den > 0 ? (n / den) * 100 : 0);
-    const casosCassacao = d.emCassacao + d.falecidos;
-    return [
-      { k: "ocupacao", l: "Regularização da ocupação", base: "art. 5º e 6º", peso: 20,
-        score: cap(pct(d.ocupada, d.total)),
-        nota: `${d.ocupada}/${d.total} bancas ocupadas` },
-      { k: "cassacao", l: "Tratamento de óbitos → cassação", base: "art. 18 e 19", peso: 20,
-        score: cap(pct(d.procCassacao, casosCassacao || 1)),
-        nota: `${d.procCassacao} processo(s) para ${casosCassacao} caso(s)` },
-      { k: "recad", l: "Cadastro e recadastramento", base: "art. 12", peso: 15,
-        score: cap(d.recadPct ?? 0),
-        nota: d.recadPct !== null ? `${d.recadPct.toFixed(1)}% no último semestre` : "sem registro" },
-      { k: "adimplencia", l: "Adimplência financeira", base: "art. 14", peso: 15,
-        score: cap(100 - pct(d.inadBancas, d.total)),
-        nota: `${d.inadBancas} banca(s) inadimplente(s)` },
-      { k: "governanca", l: "Governança e Conselho Gestor", base: "conselho e portarias", peso: 15,
-        score: cap(((d.conselho > 0 ? 100 : 0) + (d.gestor > 0 ? 100 : 0) + (d.secretario > 0 ? 100 : 0)) / 3),
-        nota: `${d.conselho > 0 ? "conselho ok" : "sem conselho"} · ${d.gestor > 0 ? "gestor ok" : "sem gestor"} · ${d.secretario > 0 ? "secretário ok" : "sem secretário"}` },
-      { k: "transparencia", l: "Transparência e atos", base: "editais e atas", peso: 10,
-        score: cap(((d.sorteios > 0 ? 100 : 0) + (d.atasPub > 0 ? 100 : 0)) / 2),
-        nota: `${d.sorteios} edital(is) · ${d.atasPub} ata(s) pública(s)` },
-      { k: "infra", l: "Infraestrutura predial", base: "conservação", peso: 5,
-        score: cap(d.infraAreas > 0 ? 100 - pct(d.infraCriticas, d.infraAreas) : 100),
-        nota: `${d.infraCriticas} área(s) crítica(s) de ${d.infraAreas}` },
-    ];
-  }, [d]);
+  const dims = useMemo(() => (d ? calcularDimensoes(d) : []), [d]);
 
   const score = useMemo(() => Math.round(dims.reduce((s, x) => s + x.score * x.peso, 0) / 100), [dims]);
   const nv = nivel(score);
