@@ -81,7 +81,7 @@ export default function AdminGuard({
         <nav className="grid gap-1">
           {GRUPOS.map((g, gi) => (
             <div key={g.area} className={gi > 0 ? "mt-3" : ""}>
-              <p className="px-2 pb-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">{g.area}</p>
+              <p className="mb-1 border-b border-line px-2 pb-1.5 text-[12.5px] font-extrabold uppercase tracking-wider text-navy">{g.area}</p>
               {g.itens.map((n) => (
                 <Link
                   key={n.key}
