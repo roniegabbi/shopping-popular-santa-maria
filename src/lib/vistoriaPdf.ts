@@ -13,7 +13,13 @@ export type VistoriaDados = {
   gestor?: Agente | null; secretario?: Agente | null; logo?: Logo | null;
 };
 
-const TIPO_LABEL: Record<string, string> = { banca: "Estande/módulo", estrutural: "Estrutural / predial", area_comum: "Área comum" };
+const TIPO_LABEL: Record<string, string> = { banca: "Estande/módulo", geral: "Vistoria geral do Shopping Independência", estrutural: "Estrutural / predial", area_comum: "Área comum" };
+const SCALE: [string, string, string][] = [["1","1","#C0392B"],["2","2","#E07B39"],["3","3","#C8961E"],["4","4","#4C9A4C"],["5","5","#2E8B57"],["na","N/A","#6E5C82"]];
+const hx = (h: string): [number, number, number] => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+function mediaVist(itens: ItemVistoria[]): number | null {
+  const nums = itens.map((i) => Number(i.situacao)).filter((n) => n >= 1 && n <= 5);
+  return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
+}
 
 function dataExtenso(d = new Date()) { return `Santa Maria, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`; }
 function fmtData(s: string) { return new Date(s + "T00:00:00").toLocaleDateString("pt-BR"); }
@@ -55,37 +61,49 @@ export function gerarFichaVistoria(d: VistoriaDados) {
   const alvo = d.tipo === "banca" ? `Estande/módulo nº ${d.banca ?? "—"}${d.permissionario ? ` — ${d.permissionario}` : ""}` : TIPO_LABEL[d.tipo] ?? d.tipo;
   doc.text(`Data: ${fmtData(d.data)}     |     Objeto: ${alvo}`, W / 2, y, { align: "center", maxWidth: CW }); y += 9;
 
-  // tabela do checklist
-  const cX = [M, M + CW - 45, M + CW - 33, M + CW - 21, M + CW - 9];
+  // tabela do checklist (escala 1–5 + N/A)
+  const scaleW = 52, cellW = scaleW / 6, scaleX0 = M + CW - scaleW, labW = CW - scaleW - 4;
   const drawHead = () => {
     doc.setFillColor(31, 56, 100); doc.rect(M, y, CW, 7, "F");
     doc.setFont("times", "bold").setFontSize(8.5).setTextColor(255, 255, 255);
-    doc.text("Item verificado", cX[0] + 1, y + 4.6);
-    doc.text("C", cX[1] + 3, y + 4.6); doc.text("NC", cX[2] + 2, y + 4.6); doc.text("N/A", cX[3] + 1, y + 4.6);
+    doc.text("Item verificado", M + 1, y + 4.6);
+    SCALE.forEach((s, k) => doc.text(s[1], scaleX0 + cellW * k + cellW / 2, y + 4.6, { align: "center" }));
     y += 7;
   };
   drawHead();
   doc.setFont("times", "normal").setTextColor(20, 20, 20);
   d.itens.forEach((it, i) => {
-    const linhas = doc.splitTextToSize(it.label, CW - 48) as string[];
-    const obsLinhas = it.obs ? doc.splitTextToSize(`Obs.: ${it.obs}`, CW - 48) as string[] : [];
-    const hRow = Math.max(7, (linhas.length + obsLinhas.length) * 4.4 + 3);
-    if (y + hRow > 250) { doc.addPage(); y = 18; drawHead(); doc.setFont("times", "normal").setTextColor(20, 20, 20); }
+    const linhas = doc.splitTextToSize(it.label, labW) as string[];
+    const obsLinhas = it.obs ? doc.splitTextToSize(`Obs.: ${it.obs}`, labW) as string[] : [];
+    const hRow = Math.max(8, (linhas.length + obsLinhas.length) * 4.4 + 3);
+    if (y + hRow > 248) { doc.addPage(); y = 18; drawHead(); doc.setFont("times", "normal").setTextColor(20, 20, 20); }
     if (i % 2) { doc.setFillColor(244, 240, 250); doc.rect(M, y, CW, hRow, "F"); }
     doc.setFontSize(8.8).setTextColor(20, 20, 20);
-    doc.text(linhas, cX[0] + 1, y + 4.4);
-    if (obsLinhas.length) { doc.setFontSize(7.8).setTextColor(90, 90, 90); doc.text(obsLinhas, cX[0] + 3, y + 4.4 + linhas.length * 4.4); }
-    // caixas
-    const boxY = y + 1.8;
-    [cX[1] + 3, cX[2] + 3, cX[3] + 2].forEach((bx) => { doc.setDrawColor(120, 120, 140).setLineWidth(0.3); doc.rect(bx, boxY, 3.5, 3.5); });
-    const marca = it.situacao === "conforme" ? 0 : it.situacao === "nao_conforme" ? 1 : it.situacao === "na" ? 2 : -1;
-    if (marca >= 0) { doc.setFont("times", "bold").setFontSize(9).setTextColor(0, 0, 0); doc.text("X", [cX[1] + 3.6, cX[2] + 3.6, cX[3] + 2.6][marca], boxY + 3.2); doc.setFont("times", "normal"); }
+    doc.text(linhas, M + 1, y + 4.4);
+    if (obsLinhas.length) { doc.setFontSize(7.8).setTextColor(90, 90, 90); doc.text(obsLinhas, M + 3, y + 4.4 + linhas.length * 4.4); }
+    const cy = y + hRow / 2;
+    SCALE.forEach((s, k) => {
+      const cx = scaleX0 + cellW * k + cellW / 2;
+      const sel = it.situacao === s[0];
+      if (sel) { const [r, g, b] = hx(s[2]); doc.setFillColor(r, g, b); doc.roundedRect(cx - cellW / 2 + 1, cy - 2.6, cellW - 2, 5.2, 1, 1, "F"); doc.setTextColor(255, 255, 255); }
+      else doc.setTextColor(95, 95, 95);
+      doc.setFont("times", sel ? "bold" : "normal").setFontSize(7.6);
+      doc.text(s[1], cx, cy + 1.2, { align: "center" });
+    });
+    doc.setTextColor(20, 20, 20); doc.setFont("times", "normal");
     y += hRow;
     doc.setDrawColor(230, 226, 238); doc.line(M, y, W - M, y);
   });
 
-  y += 4;
-  doc.setFont("times", "bold").setFontSize(9).setTextColor(60, 60, 60); doc.text("Legenda: C = conforme · NC = não conforme · N/A = não se aplica", M, y); y += 7;
+  y += 5;
+  const med = mediaVist(d.itens);
+  if (med !== null) {
+    const [r, g, b] = hx(SCALE[Math.max(0, Math.min(4, Math.round(med) - 1))][2]);
+    doc.setFont("times", "bold").setFontSize(10.5).setTextColor(r, g, b);
+    doc.text(`Média da vistoria: ${med.toFixed(1)} / 5`, M, y); y += 6;
+  }
+  doc.setFont("times", "normal").setFontSize(8.5).setTextColor(60, 60, 60);
+  doc.text("Escala: 1 Crítico · 2 Ruim · 3 Regular · 4 Bom · 5 Ótimo · N/A não se aplica", M, y); y += 7;
 
   // observações gerais
   doc.setFont("times", "bold").setFontSize(9.5).setTextColor(30, 30, 30); doc.text("Observações gerais:", M, y); y += 5;
@@ -106,7 +124,7 @@ export function gerarFichaVistoria(d: VistoriaDados) {
 
 // ---------- Ofício de irregularidades da vistoria ----------
 export function gerarOficioVistoria(d: VistoriaDados) {
-  const naoConf = d.itens.filter((i) => i.situacao === "nao_conforme");
+  const naoConf = d.itens.filter((i) => i.situacao === "1" || i.situacao === "2");
   if (naoConf.length === 0) { alert("Não há itens não conformes nesta vistoria."); return; }
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = cabecalho(doc, d.logo);

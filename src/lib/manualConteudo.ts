@@ -124,7 +124,7 @@ export const MANUAL: ManualSecao[] = [
     intro: "Módulos de apoio à gestão e à conformidade.",
     passos: [
       "Infraestrutura: áreas do prédio e ordens de reparo, com status de atenção/crítico.",
-      "Vistorias: abra a vistoria, gere a Ficha Técnica (PDF) numerada para levar a campo, lance o checklist na volta e emita a notificação dos itens não conformes (ao permissionário ou à concessionária).",
+      "Vistorias: abra a vistoria (por banca ou geral do Shopping), gere a Ficha Técnica (PDF) numerada, avalie cada item na escala 1 a 5 na volta e emita a notificação dos itens com nota ≤ 2. O sistema calcula a média, mostra o gráfico de tendência (melhorando/piorando) e alerta quando a última vistoria geral passou de 30 dias.",
       "Judicial & ACP: acompanhamento de processos judiciais e ações civis públicas.",
       "Conselho Gestor: membros por representação (poder público, concessionária, comerciantes) e atas.",
       "Agentes & Portarias: cadastro do Gestor e do Secretário que assinam os documentos.",
