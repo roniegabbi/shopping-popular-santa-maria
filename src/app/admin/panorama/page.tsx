@@ -38,7 +38,7 @@ function Body() {
   const [funil, setFunil] = useState<Record<string, number>>({});
   const [topDevedores, setTopDevedores] = useState<{ banca: string; nome: string; cotas: number; total: number }[]>([]);
   const [recad, setRecad] = useState<{ competencia: string; comp: number; tot: number }[]>([]);
-  const [prazos, setPrazos] = useState({ vencidos: 0, vencendo: 0 });
+  const [prazos, setPrazos] = useState({ vencidos: 0, vencendo: 0, desocVencidos: 0, desocVencendo: 0 });
   const [riscos, setRiscos] = useState<Risco[]>([]);
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
@@ -132,19 +132,22 @@ function Body() {
     ]);
 
     // funil de cassação — etapas dos processos abertos no módulo Cassações
-    const { data: procs } = await sb.from("processo").select("status,prazo_defesa").eq("tipo", "cassacao");
+    const { data: procs } = await sb.from("processo").select("status,prazo_defesa,prazo_desocupacao").eq("tipo", "cassacao");
     const f: Record<string, number> = {};
     const hojeD = new Date(); hojeD.setHours(0, 0, 0, 0);
-    let venc = 0, vgd = 0;
-    for (const pr of (procs as { status: string; prazo_defesa: string | null }[]) ?? []) {
+    const diasAte = (s: string) => Math.round((new Date(s + "T00:00:00").getTime() - hojeD.getTime()) / 86400000);
+    let venc = 0, vgd = 0, dv = 0, dvg = 0;
+    for (const pr of (procs as { status: string; prazo_defesa: string | null; prazo_desocupacao: string | null }[]) ?? []) {
       f[pr.status] = (f[pr.status] ?? 0) + 1;
       if (["aberto", "contraditorio"].includes(pr.status) && pr.prazo_defesa) {
-        const dias = Math.round((new Date(pr.prazo_defesa + "T00:00:00").getTime() - hojeD.getTime()) / 86400000);
-        if (dias < 0) venc++; else if (dias <= 3) vgd++;
+        const dias = diasAte(pr.prazo_defesa); if (dias < 0) venc++; else if (dias <= 3) vgd++;
+      }
+      if (["decidido", "desocupacao"].includes(pr.status) && pr.prazo_desocupacao) {
+        const dias = diasAte(pr.prazo_desocupacao); if (dias < 0) dv++; else if (dias <= 3) dvg++;
       }
     }
     setFunil(f);
-    setPrazos({ vencidos: venc, vencendo: vgd });
+    setPrazos({ vencidos: venc, vencendo: vgd, desocVencidos: dv, desocVencendo: dvg });
 
     // comparecimento no recadastramento por semestre
     const { data: recs } = await sb.from("recadastramento").select("competencia,compareceu");
@@ -193,6 +196,8 @@ function Body() {
     c.cassacao ? { t: `${c.cassacao} banca(s) em cassação`, s: "Procedimentos em curso", n: "alto" } : null,
     prazos.vencidos ? { t: `${prazos.vencidos} prazo(s) de contraditório vencido(s)`, s: "Aptos a decisão — art. 18", n: "critico" } : null,
     prazos.vencendo ? { t: `${prazos.vencendo} contraditório(s) vencendo em até 3 dias`, s: "Acompanhar prazo de defesa", n: "alto" } : null,
+    prazos.desocVencidos ? { t: `${prazos.desocVencidos} prazo(s) de desocupação vencido(s)`, s: "Desocupação e lacre — art. 18", n: "critico" } : null,
+    prazos.desocVencendo ? { t: `${prazos.desocVencendo} desocupação(ões) vencendo em até 3 dias`, s: "Acompanhar prazo de saída", n: "alto" } : null,
     c.acp ? { t: `${c.acp} Ação(ões) Civil(is) Pública(s)`, s: "Acompanhamento judicial", n: "alto" } : null,
     c.notif ? { t: `${c.notif} notificação(ões) em aberto`, s: "Prazos a acompanhar", n: "medio" } : null,
     c.infraCritico ? { t: `${c.infraCritico} área(s) de infraestrutura crítica(s)`, s: "Reparos urgentes", n: "alto" } : null,

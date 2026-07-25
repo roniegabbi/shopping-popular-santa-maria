@@ -31,16 +31,17 @@ type Proc = {
   id: string; banca_id: string | null; tipo: string; status: string; gatilho: string | null;
   base_legal: string | null; aberto_em: string | null; desfecho: string | null;
   ciencia_em: string | null; prazo_defesa: string | null;
+  decidido_em: string | null; prazo_desocupacao: string | null;
   banca: { numero: string } | null; permissionario: { nome: string } | null;
 };
 
-function prazoInfo(p: Proc) {
-  if (!p.prazo_defesa || !["aberto", "contraditorio"].includes(p.status)) return null;
+function calcPrazo(dateStr: string | null) {
+  if (!dateStr) return null;
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const venc = new Date(p.prazo_defesa + "T00:00:00");
+  const venc = new Date(dateStr + "T00:00:00");
   const dias = Math.round((venc.getTime() - hoje.getTime()) / 86400000);
   const cor = dias < 0 ? "#C0392B" : dias <= 3 ? "#C8961E" : "#2E8B57";
-  const label = dias < 0 ? `prazo vencido há ${-dias} dia(s)` : dias === 0 ? "vence hoje" : `${dias} dia(s) restante(s)`;
+  const label = dias < 0 ? `vencido há ${-dias} dia(s)` : dias === 0 ? "vence hoje" : `${dias} dia(s) restante(s)`;
   return { dias, cor, label, venc: venc.toLocaleDateString("pt-BR"), vencido: dias < 0 };
 }
 
@@ -63,7 +64,7 @@ function Body() {
 
   const carregar = useCallback(async () => {
     const { data } = await sb.from("processo")
-      .select("id,banca_id,tipo,status,gatilho,base_legal,aberto_em,desfecho,ciencia_em,prazo_defesa,banca(numero),permissionario(nome)")
+      .select("id,banca_id,tipo,status,gatilho,base_legal,aberto_em,desfecho,ciencia_em,prazo_defesa,decidido_em,prazo_desocupacao,banca(numero),permissionario(nome)")
       .eq("tipo", "cassacao").order("aberto_em", { ascending: false });
     const rows = (data as unknown as Proc[]) ?? [];
     setLista(rows);
@@ -128,7 +129,12 @@ function Body() {
   async function avancar(p: Proc) {
     const nova = proxima(p.status);
     const patch: Record<string, unknown> = { status: nova };
-    if (nova === "encerrado") patch.encerrado_em = new Date().toISOString().slice(0, 10);
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    if (nova === "decidido") {
+      const d = new Date(); d.setDate(d.getDate() + 30);
+      patch.decidido_em = hojeISO; patch.prazo_desocupacao = d.toISOString().slice(0, 10);
+    }
+    if (nova === "encerrado") patch.encerrado_em = hojeISO;
     await sb.from("processo").update(patch).eq("id", p.id);
     carregar();
   }
@@ -228,7 +234,7 @@ function Body() {
               </div>
               <p className="mt-1 text-[12.5px] text-muted">{p.gatilho} · {p.base_legal} · aberto em {p.aberto_em ? new Date(p.aberto_em).toLocaleDateString("pt-BR") : "—"}</p>
               {["aberto", "contraditorio"].includes(p.status) && (() => {
-                const pz = prazoInfo(p);
+                const pz = calcPrazo(p.prazo_defesa);
                 return (
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl bg-[#faf7fd] p-2.5 text-[12px]">
                     <label className="flex items-center gap-1.5 text-muted">Ciência em:
@@ -244,6 +250,25 @@ function Body() {
                     {pz?.vencido && (
                       <button onClick={() => avancar(p)} className="rounded-lg bg-[#20242B] px-2.5 py-1 text-[11.5px] font-bold text-white">
                         Prazo esgotado → decidir
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+              {["decidido", "desocupacao"].includes(p.status) && (() => {
+                const pz = calcPrazo(p.prazo_desocupacao);
+                return (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl bg-[#fdf3ec] p-2.5 text-[12px]">
+                    <span className="text-muted">Decisão em {p.decidido_em ? new Date(p.decidido_em + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</span>
+                    {pz && (
+                      <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: pz.cor }}>
+                        <i className="inline-block h-2 w-2 rounded-full" style={{ background: pz.cor }} />
+                        Desocupação (30 dias) vence {pz.venc} · {pz.label}
+                      </span>
+                    )}
+                    {pz?.vencido && p.status !== "encerrado" && (
+                      <button onClick={() => avancar(p)} className="rounded-lg bg-[#20242B] px-2.5 py-1 text-[11.5px] font-bold text-white">
+                        Prazo esgotado → {ETAPA_LABEL[proxima(p.status)]}
                       </button>
                     )}
                   </div>
