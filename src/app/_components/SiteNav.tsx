@@ -8,6 +8,7 @@ const NAV = [
   { href: "/mapa", label: "Mapa de Bancas" },
   { href: "/participar", label: "Como Participar" },
   { href: "/indicadores", label: "Indicadores" },
+  { href: "/transparencia", label: "Transparência" },
 ];
 
 export default function SiteNav() {
