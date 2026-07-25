@@ -20,7 +20,7 @@ const cap = (n: number) => Math.max(0, Math.min(100, n));
 const pct = (n: number, den: number) => (den > 0 ? (n / den) * 100 : 0);
 
 export function calcularDimensoes(d: DadosMaturidade): DimMaturidade[] {
-  const casosCassacao = d.emCassacao + d.falecidos;
+  const casosCassacao = Math.max(d.emCassacao, d.procCassacao);
   return [
     { k: "ocupacao", l: "Regularização da ocupação", base: "art. 5º e 6º", peso: 20,
       score: cap(pct(d.ocupada, d.total)), nota: `${d.ocupada}/${d.total} bancas ocupadas` },

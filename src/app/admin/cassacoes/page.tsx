@@ -81,6 +81,16 @@ function Body() {
     carregar();
   }, [carregar]);
 
+  const [lote, setLote] = useState<string | null>(null);
+  async function instaurarLote() {
+    setLote("Instaurando processos pendentes…");
+    const { data, error } = await sb.rpc("instaurar_cassacoes_pendentes");
+    if (error) { setLote("Erro: " + error.message); return; }
+    const n = (data as number) ?? 0;
+    setLote(n > 0 ? `${n} novo(s) processo(s) instaurado(s) com notificação de instauração.` : "Nenhum caso pendente — todos os elegíveis já têm processo.");
+    carregar();
+  }
+
   async function abrir(e: React.FormEvent) {
     e.preventDefault();
     if (!form.banca_id) return;
@@ -132,6 +142,15 @@ function Body() {
         Fluxo (art. 18): 3 notificações da concessionária → encaminhamento ao fiscal → notificação com contraditório e ampla
         defesa → desocupação em 30 dias → lacre. Abra o processo e avance as etapas conforme o andamento.
       </p>
+
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white p-4">
+        <div className="flex-1">
+          <b className="text-[13.5px] text-navy">Instaurar processos pendentes em lote</b>
+          <span className="block text-[12px] text-muted">Abre um processo (art. 18) para cada banca elegível ainda sem processo — óbito, inadimplência acima de 3 cotas e ausência em 2 recadastramentos — e registra a notificação de instauração. Não duplica processos já existentes.</span>
+          {lote && <span className="mt-1 block text-[12.5px] font-semibold text-brand">{lote}</span>}
+        </div>
+        <button onClick={instaurarLote} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy2">Instaurar pendentes</button>
+      </div>
 
       <form onSubmit={abrir} className="rounded-2xl border border-line bg-white p-5">
         <h3 className="mb-3 font-extrabold text-navy">Abrir procedimento de cassação</h3>
