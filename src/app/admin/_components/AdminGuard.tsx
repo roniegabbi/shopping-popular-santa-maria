@@ -6,26 +6,51 @@ import { createSupabase } from "@/lib/supabase";
 
 const sb = createSupabase();
 
-const NAV = [
-  { href: "/admin", label: "Dashboard", key: "dashboard" },
-  { href: "/admin/mapa", label: "Painel Bancas", key: "mapa" },
-  { href: "/admin/panorama", label: "Panorama (Secretário)", key: "panorama" },
-  { href: "/admin/bancas", label: "Bancas", key: "bancas" },
-  { href: "/admin/auxiliares", label: "Auxiliares", key: "auxiliares" },
-  { href: "/admin/recadastramento", label: "Recadastramento", key: "recadastramento" },
-  { href: "/admin/sorteios", label: "Sorteios & Editais", key: "sorteios" },
-  { href: "/admin/notificacoes", label: "Notificações", key: "notificacoes" },
-  { href: "/admin/inadimplentes", label: "Inadimplentes", key: "inadimplentes" },
-  { href: "/admin/frequencia", label: "Frequência (art. 6º)", key: "frequencia" },
-  { href: "/admin/cassacoes", label: "Cassações", key: "cassacoes" },
-  { href: "/admin/contas", label: "Contas (água/energia)", key: "contas" },
-  { href: "/admin/infraestrutura", label: "Infraestrutura", key: "infraestrutura" },
-  { href: "/admin/vistorias", label: "Vistorias", key: "vistorias" },
-  { href: "/admin/judicial", label: "Judicial & ACP", key: "judicial" },
-  { href: "/admin/conselho", label: "Conselho Gestor", key: "conselho" },
-  { href: "/admin/agentes", label: "Agentes & Portarias", key: "agentes" },
-  { href: "/admin/identidade", label: "Identidade Visual", key: "identidade" },
-  { href: "/admin/manual", label: "Manual de Uso", key: "manual" },
+const GRUPOS: { area: string; itens: { href: string; label: string; key: string }[] }[] = [
+  {
+    area: "Gestão estratégica",
+    itens: [
+      { href: "/admin", label: "Dashboard", key: "dashboard" },
+      { href: "/admin/mapa", label: "Painel Bancas", key: "mapa" },
+      { href: "/admin/panorama", label: "Panorama (Secretário)", key: "panorama" },
+    ],
+  },
+  {
+    area: "Conformidade legal",
+    itens: [
+      { href: "/admin/bancas", label: "Bancas", key: "bancas" },
+      { href: "/admin/auxiliares", label: "Auxiliares", key: "auxiliares" },
+      { href: "/admin/sorteios", label: "Sorteios & Editais", key: "sorteios" },
+      { href: "/admin/cassacoes", label: "Cassações", key: "cassacoes" },
+      { href: "/admin/judicial", label: "Judicial & ACP", key: "judicial" },
+      { href: "/admin/conselho", label: "Conselho Gestor", key: "conselho" },
+    ],
+  },
+  {
+    area: "Rotinas de acompanhamento",
+    itens: [
+      { href: "/admin/recadastramento", label: "Recadastramento", key: "recadastramento" },
+      { href: "/admin/frequencia", label: "Frequência (art. 6º)", key: "frequencia" },
+      { href: "/admin/vistorias", label: "Vistorias", key: "vistorias" },
+      { href: "/admin/infraestrutura", label: "Infraestrutura", key: "infraestrutura" },
+      { href: "/admin/notificacoes", label: "Notificações", key: "notificacoes" },
+    ],
+  },
+  {
+    area: "Gestão financeira",
+    itens: [
+      { href: "/admin/inadimplentes", label: "Inadimplentes", key: "inadimplentes" },
+      { href: "/admin/contas", label: "Contas (água/energia)", key: "contas" },
+    ],
+  },
+  {
+    area: "Configurações",
+    itens: [
+      { href: "/admin/agentes", label: "Agentes & Portarias", key: "agentes" },
+      { href: "/admin/identidade", label: "Identidade Visual", key: "identidade" },
+      { href: "/admin/manual", label: "Manual de Uso", key: "manual" },
+    ],
+  },
 ];
 
 export default function AdminGuard({
@@ -53,18 +78,22 @@ export default function AdminGuard({
   return (
     <div className="container-page grid gap-6 py-8 md:grid-cols-[220px_1fr]">
       <aside className="h-max rounded-2xl border border-line bg-white p-3">
-        <p className="px-2 pb-2 text-[11px] font-bold uppercase tracking-wide text-muted">Gestão</p>
         <nav className="grid gap-1">
-          {NAV.map((n) => (
-            <Link
-              key={n.key}
-              href={n.href}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
-                active === n.key ? "bg-navy text-white" : "text-muted hover:bg-[#F1EAF8] hover:text-navy"
-              }`}
-            >
-              {n.label}
-            </Link>
+          {GRUPOS.map((g, gi) => (
+            <div key={g.area} className={gi > 0 ? "mt-3" : ""}>
+              <p className="px-2 pb-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">{g.area}</p>
+              {g.itens.map((n) => (
+                <Link
+                  key={n.key}
+                  href={n.href}
+                  className={`block rounded-lg px-3 py-2 text-sm font-semibold ${
+                    active === n.key ? "bg-navy text-white" : "text-muted hover:bg-[#F1EAF8] hover:text-navy"
+                  }`}
+                >
+                  {n.label}
+                </Link>
+              ))}
+            </div>
           ))}
         </nav>
         <button
