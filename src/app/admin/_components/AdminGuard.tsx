@@ -10,6 +10,7 @@ const NAV = [
   { href: "/admin", label: "Dashboard", key: "dashboard" },
   { href: "/admin/panorama", label: "Panorama (Secretário)", key: "panorama" },
   { href: "/admin/bancas", label: "Bancas", key: "bancas" },
+  { href: "/admin/auxiliares", label: "Auxiliares", key: "auxiliares" },
   { href: "/admin/recadastramento", label: "Recadastramento", key: "recadastramento" },
   { href: "/admin/sorteios", label: "Sorteios & Editais", key: "sorteios" },
   { href: "/admin/notificacoes", label: "Notificações", key: "notificacoes" },
