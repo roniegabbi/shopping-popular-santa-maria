@@ -41,6 +41,7 @@ export const MANUAL: ManualSecao[] = [
       "Edite o cadastro do permissionário (nome, CPF, RG, endereço). CPFs inválidos são sinalizados com alerta.",
       "Use a busca por número ou nome para localizar rapidamente.",
       "No “Painel Bancas”, veja todas as bancas como cards coloridos pela situação legal, com segmento, permissionário e auxiliar — filtre por segmento e por situação.",
+      "Use “Termo (PDF)” para gerar o Termo de Autorização de Uso individual do permissionário, com as cláusulas do Decreto e as assinaturas.",
     ],
   },
   {

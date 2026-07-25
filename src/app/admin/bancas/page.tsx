@@ -8,6 +8,7 @@ import { gerarRelatorioCadastroBancas, type ItemCadastro } from "@/lib/relatorio
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 import type { Agente } from "@/lib/notificacaoPdf";
 import { cpfComErro } from "@/lib/cpf";
+import { gerarTermoPermissao } from "@/lib/termoPermissaoPdf";
 import PermEditModal from "./PermEditModal";
 
 const sb = createSupabase();
@@ -158,7 +159,23 @@ function Body() {
                   </select>
                 </td>
                 <td className="p-3">
-                  <button onClick={() => setEditar({ id: r.id, numero: r.numero })} className="text-[12.5px] font-semibold text-brand">editar</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditar({ id: r.id, numero: r.numero })} className="text-[12.5px] font-semibold text-brand">editar</button>
+                    {perm[r.id] && (
+                      <button
+                        onClick={() => gerarTermoPermissao({
+                          banca: r.numero, pavimento: PAVL[r.pavimento] ?? r.pavimento,
+                          segmento: segs.find((s) => s.id === r.segmento_id)?.nome ?? null,
+                          nome: perm[r.id].nome, cpf: perm[r.id].cpf, rg: perm[r.id].rg,
+                          endereco: perm[r.id].endereco, bairro: perm[r.id].bairro,
+                          gestor, secretario, logo,
+                        })}
+                        className="text-[12.5px] font-semibold text-navy"
+                      >
+                        Termo (PDF)
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
