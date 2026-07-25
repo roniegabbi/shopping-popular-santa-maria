@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin/sorteios", label: "Sorteios & Editais", key: "sorteios" },
   { href: "/admin/notificacoes", label: "Notificações", key: "notificacoes" },
   { href: "/admin/inadimplentes", label: "Inadimplentes", key: "inadimplentes" },
+  { href: "/admin/frequencia", label: "Frequência (art. 6º)", key: "frequencia" },
   { href: "/admin/cassacoes", label: "Cassações", key: "cassacoes" },
   { href: "/admin/contas", label: "Contas (água/energia)", key: "contas" },
   { href: "/admin/infraestrutura", label: "Infraestrutura", key: "infraestrutura" },
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/admin/conselho", label: "Conselho Gestor", key: "conselho" },
   { href: "/admin/agentes", label: "Agentes & Portarias", key: "agentes" },
   { href: "/admin/identidade", label: "Identidade Visual", key: "identidade" },
+  { href: "/admin/manual", label: "Manual de Uso", key: "manual" },
 ];
 
 export default function AdminGuard({
