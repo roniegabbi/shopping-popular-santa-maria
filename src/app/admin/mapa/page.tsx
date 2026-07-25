@@ -100,22 +100,21 @@ function Body() {
       </div>
 
       {/* grade de cards */}
-      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))" }}>
+      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))" }}>
         {filtradas.map((b) => {
           const s = sitInfo(b.status);
           return (
-            <div key={b.id} className="overflow-hidden rounded-2xl border border-line bg-white" style={{ borderTop: `4px solid ${s.c}` }}>
-              <div className="flex items-center justify-between px-3 pt-2.5">
-                <b className="text-lg font-extrabold text-navy">Banca {b.numero}</b>
-                <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ background: s.c + "22", color: s.c }}>{s.l}</span>
+            <div key={b.id} className="overflow-hidden rounded-xl border p-2" style={{ background: s.c + "26", borderColor: s.c + "80" }}>
+              <div className="flex items-baseline justify-between gap-1">
+                <span className="truncate text-[13.5px] font-extrabold text-navy"><span className="text-[9.5px] font-semibold text-muted">Banca </span>{b.numero}</span>
+                <span className="shrink-0 rounded-full bg-white/80 px-1.5 py-0.5 text-[9px] font-bold" style={{ color: s.c }}>{s.l}</span>
               </div>
-              <div className="px-3 pb-3 pt-1.5">
-                <p className="text-[11px] uppercase tracking-wide text-muted">{b.segmento?.nome ?? "sem segmento"}</p>
-                <div className="mt-1.5 grid gap-1 text-[12.5px]">
-                  <div><span className="text-muted">Permissionário: </span><span className="font-semibold text-navy">{titular[b.id] ?? "—"}</span></div>
-                  <div><span className="text-muted">Auxiliar: </span>{aux[b.id] ? <span className="text-navy">{aux[b.id]}</span> : <span className="text-muted">sem auxiliar</span>}</div>
-                </div>
-              </div>
+              <p className="mt-1 truncate text-[9.5px] font-semibold uppercase tracking-wide text-muted">{b.segmento?.nome ?? "sem segmento"}</p>
+              <p className="mt-0.5 text-[11px] font-semibold leading-tight text-navy" title={titular[b.id] ?? ""}
+                 style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {titular[b.id] ?? "—"}
+              </p>
+              <p className="truncate text-[10px] text-muted" title={aux[b.id] ?? ""}>aux: {aux[b.id] ?? "—"}</p>
             </div>
           );
         })}
