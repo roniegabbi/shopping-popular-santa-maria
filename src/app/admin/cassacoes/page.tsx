@@ -30,8 +30,19 @@ type Banca = { id: string; numero: string };
 type Proc = {
   id: string; banca_id: string | null; tipo: string; status: string; gatilho: string | null;
   base_legal: string | null; aberto_em: string | null; desfecho: string | null;
+  ciencia_em: string | null; prazo_defesa: string | null;
   banca: { numero: string } | null; permissionario: { nome: string } | null;
 };
+
+function prazoInfo(p: Proc) {
+  if (!p.prazo_defesa || !["aberto", "contraditorio"].includes(p.status)) return null;
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const venc = new Date(p.prazo_defesa + "T00:00:00");
+  const dias = Math.round((venc.getTime() - hoje.getTime()) / 86400000);
+  const cor = dias < 0 ? "#C0392B" : dias <= 3 ? "#C8961E" : "#2E8B57";
+  const label = dias < 0 ? `prazo vencido há ${-dias} dia(s)` : dias === 0 ? "vence hoje" : `${dias} dia(s) restante(s)`;
+  return { dias, cor, label, venc: venc.toLocaleDateString("pt-BR"), vencido: dias < 0 };
+}
 
 export default function CassacoesPage() {
   return (
@@ -52,7 +63,7 @@ function Body() {
 
   const carregar = useCallback(async () => {
     const { data } = await sb.from("processo")
-      .select("id,banca_id,tipo,status,gatilho,base_legal,aberto_em,desfecho,banca(numero),permissionario(nome)")
+      .select("id,banca_id,tipo,status,gatilho,base_legal,aberto_em,desfecho,ciencia_em,prazo_defesa,banca(numero),permissionario(nome)")
       .eq("tipo", "cassacao").order("aberto_em", { ascending: false });
     const rows = (data as unknown as Proc[]) ?? [];
     setLista(rows);
@@ -103,6 +114,14 @@ function Body() {
     });
     await sb.from("banca").update({ status: "em_cassacao" }).eq("id", form.banca_id);
     setForm({ ...form, banca_id: "", prazo: "" });
+    carregar();
+  }
+
+  async function setCiencia(p: Proc, dateStr: string) {
+    if (!dateStr) return;
+    const d = new Date(dateStr + "T00:00:00"); d.setDate(d.getDate() + 10);
+    const prazo = d.toISOString().slice(0, 10);
+    await sb.from("processo").update({ ciencia_em: dateStr, prazo_defesa: prazo }).eq("id", p.id);
     carregar();
   }
 
@@ -208,6 +227,28 @@ function Body() {
                 </div>
               </div>
               <p className="mt-1 text-[12.5px] text-muted">{p.gatilho} · {p.base_legal} · aberto em {p.aberto_em ? new Date(p.aberto_em).toLocaleDateString("pt-BR") : "—"}</p>
+              {["aberto", "contraditorio"].includes(p.status) && (() => {
+                const pz = prazoInfo(p);
+                return (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl bg-[#faf7fd] p-2.5 text-[12px]">
+                    <label className="flex items-center gap-1.5 text-muted">Ciência em:
+                      <input type="date" defaultValue={p.ciencia_em ?? ""} onChange={(e) => setCiencia(p, e.target.value)}
+                        className="rounded-lg border border-line px-2 py-1 text-[12px]" />
+                    </label>
+                    {pz && (
+                      <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: pz.cor }}>
+                        <i className="inline-block h-2 w-2 rounded-full" style={{ background: pz.cor }} />
+                        Contraditório vence {pz.venc} · {pz.label}
+                      </span>
+                    )}
+                    {pz?.vencido && (
+                      <button onClick={() => avancar(p)} className="rounded-lg bg-[#20242B] px-2.5 py-1 text-[11.5px] font-bold text-white">
+                        Prazo esgotado → decidir
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

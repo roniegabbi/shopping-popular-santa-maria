@@ -38,6 +38,7 @@ function Body() {
   const [funil, setFunil] = useState<Record<string, number>>({});
   const [topDevedores, setTopDevedores] = useState<{ banca: string; nome: string; cotas: number; total: number }[]>([]);
   const [recad, setRecad] = useState<{ competencia: string; comp: number; tot: number }[]>([]);
+  const [prazos, setPrazos] = useState({ vencidos: 0, vencendo: 0 });
   const [riscos, setRiscos] = useState<Risco[]>([]);
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
@@ -131,10 +132,19 @@ function Body() {
     ]);
 
     // funil de cassação — etapas dos processos abertos no módulo Cassações
-    const { data: procs } = await sb.from("processo").select("status").eq("tipo", "cassacao");
+    const { data: procs } = await sb.from("processo").select("status,prazo_defesa").eq("tipo", "cassacao");
     const f: Record<string, number> = {};
-    for (const pr of (procs as { status: string }[]) ?? []) f[pr.status] = (f[pr.status] ?? 0) + 1;
+    const hojeD = new Date(); hojeD.setHours(0, 0, 0, 0);
+    let venc = 0, vgd = 0;
+    for (const pr of (procs as { status: string; prazo_defesa: string | null }[]) ?? []) {
+      f[pr.status] = (f[pr.status] ?? 0) + 1;
+      if (["aberto", "contraditorio"].includes(pr.status) && pr.prazo_defesa) {
+        const dias = Math.round((new Date(pr.prazo_defesa + "T00:00:00").getTime() - hojeD.getTime()) / 86400000);
+        if (dias < 0) venc++; else if (dias <= 3) vgd++;
+      }
+    }
     setFunil(f);
+    setPrazos({ vencidos: venc, vencendo: vgd });
 
     // comparecimento no recadastramento por semestre
     const { data: recs } = await sb.from("recadastramento").select("competencia,compareceu");
@@ -181,6 +191,8 @@ function Body() {
     c.falecidos ? { t: `${c.falecidos} banca(s) com titular falecido`, s: "Cassação obrigatória — Parecer 33/2024 · ADI 5.337", n: "critico" } : null,
     c.naoRecad ? { t: `${c.naoRecad} não recadastrado(s)`, s: "Risco de cassação (art. 12, V)", n: "alto" } : null,
     c.cassacao ? { t: `${c.cassacao} banca(s) em cassação`, s: "Procedimentos em curso", n: "alto" } : null,
+    prazos.vencidos ? { t: `${prazos.vencidos} prazo(s) de contraditório vencido(s)`, s: "Aptos a decisão — art. 18", n: "critico" } : null,
+    prazos.vencendo ? { t: `${prazos.vencendo} contraditório(s) vencendo em até 3 dias`, s: "Acompanhar prazo de defesa", n: "alto" } : null,
     c.acp ? { t: `${c.acp} Ação(ões) Civil(is) Pública(s)`, s: "Acompanhamento judicial", n: "alto" } : null,
     c.notif ? { t: `${c.notif} notificação(ões) em aberto`, s: "Prazos a acompanhar", n: "medio" } : null,
     c.infraCritico ? { t: `${c.infraCritico} área(s) de infraestrutura crítica(s)`, s: "Reparos urgentes", n: "alto" } : null,
