@@ -9,6 +9,7 @@ import type { Agente } from "@/lib/notificacaoPdf";
 import FinanceiroChart from "./FinanceiroChart";
 import ArrecadacaoChart from "./ArrecadacaoChart";
 import SazonalidadeChart from "./SazonalidadeChart";
+import MaturidadeIndex from "./MaturidadeIndex";
 import { gerarRelatorioSituacoes, type SituacaoSecao } from "@/lib/relatorioSituacoesPdf";
 
 const sb = createSupabase();
@@ -176,7 +177,7 @@ function Body() {
   const totProc = Object.values(funil).reduce((s, v) => s + v, 0);
 
   const ABAS: [string, string][] = [
-    ["geral", "Visão geral"], ["financeiro", "Financeiro"], ["conformidade", "Conformidade"], ["riscos", "Riscos e cassação"],
+    ["geral", "Visão geral"], ["maturidade", "Maturidade"], ["financeiro", "Financeiro"], ["conformidade", "Conformidade"], ["riscos", "Riscos e cassação"],
   ];
 
   return (
@@ -259,6 +260,14 @@ function Body() {
               )}
             </Secao>
           </div>
+        </div>
+      )}
+
+      {aba === "maturidade" && (
+        <div className="grid gap-6">
+          <Secao titulo="Índice de maturidade do projeto">
+            <MaturidadeIndex />
+          </Secao>
         </div>
       )}
 
