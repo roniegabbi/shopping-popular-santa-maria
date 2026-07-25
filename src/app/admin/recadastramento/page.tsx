@@ -20,7 +20,8 @@ function competencias() {
 }
 
 type Perm = { id: string; nome: string; banca_id: string; banca: { numero: string } | null };
-type Rec = { id: string; banca_id: string; compareceu: boolean; pendencias: string | null; tipo: string };
+type Rec = { id: string; banca_id: string; compareceu: boolean; pendencias: string | null; tipo: string; auxiliar_compareceu: boolean | null };
+type AuxInfo = { id: string; nome: string };
 
 export default function RecadPage() {
   return (
@@ -35,13 +36,14 @@ function Body() {
   const [comp, setComp] = useState(semDefault);
   const [perms, setPerms] = useState<Perm[]>([]);
   const [recs, setRecs] = useState<Record<string, Rec>>({});
+  const [auxPorBanca, setAuxPorBanca] = useState<Record<string, AuxInfo>>({});
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
   const [logo, setLogo] = useState<Logo | null>(null);
   const [q, setQ] = useState("");
 
   const carregarRecs = useCallback(async (competencia: string) => {
-    const { data } = await sb.from("recadastramento").select("id,banca_id,compareceu,pendencias,tipo").eq("competencia", competencia);
+    const { data } = await sb.from("recadastramento").select("id,banca_id,compareceu,pendencias,tipo,auxiliar_compareceu").eq("competencia", competencia);
     const map: Record<string, Rec> = {};
     for (const r of (data as Rec[]) ?? []) map[r.banca_id] = r;
     setRecs(map);
@@ -61,6 +63,11 @@ function Body() {
     });
     sb.from("site_config").select("valor").eq("chave", "logo_prefeitura").maybeSingle()
       .then(async ({ data }) => setLogo(await carregarLogo((data?.valor as { url?: string } | null)?.url)));
+    sb.from("auxiliar").select("id,nome,banca_id").not("banca_id", "is", null).then(({ data }) => {
+      const map: Record<string, AuxInfo> = {};
+      for (const a of (data as { id: string; nome: string; banca_id: string }[]) ?? []) if (!map[a.banca_id]) map[a.banca_id] = { id: a.id, nome: a.nome };
+      setAuxPorBanca(map);
+    });
   }, []);
 
   useEffect(() => { carregarRecs(comp); }, [comp, carregarRecs]);
@@ -73,6 +80,23 @@ function Body() {
     };
     if (existente) await sb.from("recadastramento").update({ compareceu, data: payload.data }).eq("id", existente.id);
     else await sb.from("recadastramento").insert(payload);
+    carregarRecs(comp);
+  }
+  async function marcarAux(p: Perm, compareceu: boolean) {
+    const aux = auxPorBanca[p.banca_id];
+    if (!aux) return;
+    const existente = recs[p.banca_id];
+    const dataHoje = new Date().toISOString().slice(0, 10);
+    if (existente) {
+      await sb.from("recadastramento").update({ auxiliar_id: aux.id, auxiliar_compareceu: compareceu }).eq("id", existente.id);
+    } else {
+      await sb.from("recadastramento").insert({
+        banca_id: p.banca_id, permissionario_id: p.id, competencia: comp,
+        compareceu: false, data: dataHoje, tipo: "ordinario", auxiliar_id: aux.id, auxiliar_compareceu: compareceu,
+      });
+    }
+    // comparecendo com documentos, regulariza o auxiliar (art. 13 §3); faltando, mantém pendente
+    await sb.from("auxiliar").update({ status: compareceu ? "regular" : "pendente" }).eq("id", aux.id);
     carregarRecs(comp);
   }
   async function setPend(bancaId: string, pendencias: string) {
@@ -123,7 +147,7 @@ function Body() {
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="bg-navy text-left text-xs text-white">
-              <th className="p-3">Banca</th><th className="p-3">Permissionário</th><th className="p-3">Comparecimento</th><th className="p-3">Pendências</th><th className="p-3"></th>
+              <th className="p-3">Banca</th><th className="p-3">Permissionário</th><th className="p-3">Comparecimento</th><th className="p-3">Auxiliar (art. 13)</th><th className="p-3">Pendências</th><th className="p-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -140,6 +164,23 @@ function Body() {
                       <button onClick={() => marcar(p, true)} className={`rounded-lg px-2.5 py-1 text-[12px] font-semibold ${compareceu ? "bg-ok text-white" : "border border-line text-muted"}`}>Compareceu</button>
                       <button onClick={() => marcar(p, false)} className={`rounded-lg px-2.5 py-1 text-[12px] font-semibold ${faltou ? "bg-bad text-white" : "border border-line text-muted"}`}>Faltou</button>
                     </div>
+                  </td>
+                  <td className="p-3">
+                    {(() => {
+                      const aux = auxPorBanca[p.banca_id];
+                      if (!aux) return <span className="text-[12px] text-muted">sem auxiliar</span>;
+                      const auxOk = rec?.auxiliar_compareceu === true;
+                      const auxFaltou = rec?.auxiliar_compareceu === false;
+                      return (
+                        <div>
+                          <span className="mb-1 block text-[12px] text-navy">{aux.nome}</span>
+                          <div className="flex gap-1">
+                            <button onClick={() => marcarAux(p, true)} className={`rounded-lg px-2 py-1 text-[11.5px] font-semibold ${auxOk ? "bg-ok text-white" : "border border-line text-muted"}`}>Compareceu</button>
+                            <button onClick={() => marcarAux(p, false)} className={`rounded-lg px-2 py-1 text-[11.5px] font-semibold ${auxFaltou ? "bg-bad text-white" : "border border-line text-muted"}`}>Faltou</button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="p-3">
                     <input defaultValue={rec?.pendencias ?? ""} onBlur={(e) => setPend(p.banca_id, e.target.value)} placeholder="—" className="w-full rounded-lg border border-line px-2 py-1 text-[12.5px]" />
