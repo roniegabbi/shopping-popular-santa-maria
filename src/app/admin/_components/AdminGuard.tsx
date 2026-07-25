@@ -8,6 +8,7 @@ const sb = createSupabase();
 
 const NAV = [
   { href: "/admin", label: "Dashboard", key: "dashboard" },
+  { href: "/admin/mapa", label: "Painel Bancas", key: "mapa" },
   { href: "/admin/panorama", label: "Panorama (Secretário)", key: "panorama" },
   { href: "/admin/bancas", label: "Bancas", key: "bancas" },
   { href: "/admin/auxiliares", label: "Auxiliares", key: "auxiliares" },

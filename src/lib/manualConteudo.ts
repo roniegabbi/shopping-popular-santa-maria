@@ -40,6 +40,7 @@ export const MANUAL: ManualSecao[] = [
       "Consulte a situação de cada banca: ocupada, vaga, aguardando sorteio, em regularização ou em cassação.",
       "Edite o cadastro do permissionário (nome, CPF, RG, endereço). CPFs inválidos são sinalizados com alerta.",
       "Use a busca por número ou nome para localizar rapidamente.",
+      "No “Painel Bancas”, veja todas as bancas como cards coloridos pela situação legal, com segmento, permissionário e auxiliar — filtre por segmento e por situação.",
     ],
   },
   {
