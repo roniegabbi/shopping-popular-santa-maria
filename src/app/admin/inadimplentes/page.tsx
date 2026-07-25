@@ -6,7 +6,7 @@ import AdminGuard from "../_components/AdminGuard";
 import { gerarRelatorioInadimplencia, gerarOficioPosicionamento, type GrupoInad } from "@/lib/inadimplenciaPdf";
 import type { Agente } from "@/lib/notificacaoPdf";
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
-import MoedaInput from "../_components/MoedaInput";
+import MoedaInput from "../../_components/MoedaInput";
 import { BRL, moedaParaNumero } from "@/lib/moeda";
 
 const sb = createSupabase();
@@ -42,6 +42,7 @@ export default function InadimplentesPage() {
 function Body() {
   const [bancas, setBancas] = useState<Banca[]>([]);
   const [pagas, setPagas] = useState<Pag[]>([]);
+  const [nomes, setNomes] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [gestor, setGestor] = useState<(Agente & { id: string }) | null>(null);
   const [secretario, setSecretario] = useState<(Agente & { id: string }) | null>(null);
@@ -64,6 +65,12 @@ function Body() {
       rows.sort((a, b) => Number(a.numero) - Number(b.numero));
       setBancas(rows);
     });
+    // nomes dos permissionários por banca (o vínculo é banca→permissionário, não pagamento→permissionário)
+    sb.from("permissionario").select("nome,banca_id").not("banca_id", "is", null).then(({ data }) => {
+      const map: Record<string, string> = {};
+      for (const p of (data as { nome: string; banca_id: string }[]) ?? []) map[p.banca_id] = p.nome;
+      setNomes(map);
+    });
     sb.from("agente_publico").select("id,nome,cargo,papel,portaria_numero,portaria_data,ativo").eq("ativo", true)
       .then(({ data }) => {
         const rows = (data as (Agente & { id: string; papel: string })[]) ?? [];
@@ -78,7 +85,7 @@ function Body() {
   const grupos: GrupoInad[] = useMemo(() => {
     const m = new Map<string, { numero: string; nome: string | null; cotas: number; total: number }>();
     for (const p of pagas) {
-      const cur = m.get(p.banca_id) ?? { numero: p.banca?.numero ?? "—", nome: p.permissionario?.nome ?? null, cotas: 0, total: 0 };
+      const cur = m.get(p.banca_id) ?? { numero: p.banca?.numero ?? "—", nome: nomes[p.banca_id] ?? p.permissionario?.nome ?? null, cotas: 0, total: 0 };
       cur.cotas += 1;
       cur.total += Number(p.taxa || 0) + Number(p.condominio || 0);
       m.set(p.banca_id, cur);
@@ -87,7 +94,7 @@ function Body() {
       const s = severidade(g.cotas);
       return { ...g, nivel: s.nivel, nivelLabel: s.label };
     }).sort((a, b) => b.cotas - a.cotas);
-  }, [pagas]);
+  }, [pagas, nomes]);
 
   const resumo = { bancas: grupos.length, total: grupos.reduce((s, g) => s + g.total, 0), risco: grupos.filter((g) => g.cotas > 3).length };
   const contagem = (n: Nivel) => grupos.filter((g) => g.nivel === n).length;

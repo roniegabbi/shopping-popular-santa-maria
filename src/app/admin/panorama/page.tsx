@@ -86,10 +86,15 @@ function Body() {
     const falecidos = ps.filter((p) => p.status === "falecido").map((p) => item(p, "Óbito — cassação obrigatória")).sort(ordena);
     const naoRecad = ps.filter((p) => p.status === "nao_recadastrado").map((p) => item(p)).sort(ordena);
 
-    const { data: pags } = await sb.from("pagamento").select("banca_id,status,banca(numero),permissionario(nome)").in("status", ["em_atraso", "protestado"]);
+    // nome do permissionário vem da banca (pagamento não guarda permissionario_id)
+    const { data: permAll } = await sb.from("permissionario").select("nome,banca_id").not("banca_id", "is", null);
+    const nomePorBanca: Record<string, string> = {};
+    for (const p of (permAll as { nome: string; banca_id: string }[]) ?? []) nomePorBanca[p.banca_id] = p.nome;
+
+    const { data: pags } = await sb.from("pagamento").select("banca_id,status,banca(numero)").in("status", ["em_atraso", "protestado"]);
     const mp = new Map<string, { banca: string; nome: string; cotas: number }>();
-    for (const pg of (pags as { banca_id: string; banca: { numero: string } | null; permissionario: { nome: string } | null }[]) ?? []) {
-      const cur = mp.get(pg.banca_id) ?? { banca: pg.banca?.numero ?? "—", nome: pg.permissionario?.nome ?? "—", cotas: 0 };
+    for (const pg of (pags as { banca_id: string; banca: { numero: string } | null }[]) ?? []) {
+      const cur = mp.get(pg.banca_id) ?? { banca: pg.banca?.numero ?? "—", nome: nomePorBanca[pg.banca_id] ?? "—", cotas: 0 };
       cur.cotas += 1; mp.set(pg.banca_id, cur);
     }
     const inad = [...mp.values()].filter((g) => g.cotas > 3).map((g) => ({ banca: g.banca, nome: g.nome, detalhe: `${g.cotas} cotas em atraso` }));
@@ -239,18 +244,13 @@ function Body() {
         </Grid>
       </Secao>
 
-      <Secao titulo="Financeiro — utilidades">
-        <Grid>
-          <Card money v={util.agua} l="água (acumulado)" cor="#1F9BD4" />
-          <Card money v={util.energia} l="energia (acumulado)" cor="#C8961E" />
-          <Card money v={util.agua + util.energia} l="total utilidades" cor="#3D1A5B" />
-          <Card v={util.atraso} l="contas em atraso" cor="#C0392B" />
-        </Grid>
-        <div className="mt-4">
-          <h4 className="mb-2 text-[13px] font-bold text-navy">Evolução mensal — despesas (comparativo por ano)</h4>
-          <FinanceiroChart />
-        </div>
-        <div className="mt-4">
+      <Secao titulo="Financeiro — utilidades (água / energia)">
+        <p className="mb-3 text-[12.5px] text-muted">
+          Selecione o ano para ver total, média mensal e variação. Clique num ano do gráfico para isolar a linha daquele ano.
+          {util.atraso > 0 && <span className="ml-1 font-semibold text-bad">· {util.atraso} conta(s) em atraso.</span>}
+        </p>
+        <FinanceiroChart />
+        <div className="mt-6">
           <h4 className="mb-2 text-[13px] font-bold text-navy">Arrecadação × Inadimplência (mensal · fonte: Repasses CPC 2020–2024)</h4>
           <ArrecadacaoChart />
         </div>

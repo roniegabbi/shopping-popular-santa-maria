@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabase } from "@/lib/supabase";
 import AdminGuard from "../_components/AdminGuard";
-import MoedaInput from "../_components/MoedaInput";
+import MoedaInput from "../../_components/MoedaInput";
 import { BRL, moedaParaNumero } from "@/lib/moeda";
 
 const sb = createSupabase();
