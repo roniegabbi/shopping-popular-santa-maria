@@ -14,6 +14,7 @@ const NAV = [
   { href: "/admin/sorteios", label: "Sorteios & Editais", key: "sorteios" },
   { href: "/admin/notificacoes", label: "Notificações", key: "notificacoes" },
   { href: "/admin/inadimplentes", label: "Inadimplentes", key: "inadimplentes" },
+  { href: "/admin/cassacoes", label: "Cassações", key: "cassacoes" },
   { href: "/admin/contas", label: "Contas (água/energia)", key: "contas" },
   { href: "/admin/infraestrutura", label: "Infraestrutura", key: "infraestrutura" },
   { href: "/admin/judicial", label: "Judicial & ACP", key: "judicial" },

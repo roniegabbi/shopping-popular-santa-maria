@@ -12,7 +12,7 @@ const hoje = new Date();
 const anoAtual = hoje.getFullYear();
 function competencias() {
   const out: { v: string; l: string }[] = [];
-  for (const y of [anoAtual + 1, anoAtual, anoAtual - 1]) {
+  for (let y = anoAtual + 1; y >= 2022; y--) {
     out.push({ v: `${y}-2`, l: `2º semestre ${y}` });
     out.push({ v: `${y}-1`, l: `1º semestre ${y}` });
   }
