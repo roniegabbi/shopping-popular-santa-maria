@@ -20,6 +20,7 @@ const NAV = [
   { href: "/admin/cassacoes", label: "Cassações", key: "cassacoes" },
   { href: "/admin/contas", label: "Contas (água/energia)", key: "contas" },
   { href: "/admin/infraestrutura", label: "Infraestrutura", key: "infraestrutura" },
+  { href: "/admin/vistorias", label: "Vistorias", key: "vistorias" },
   { href: "/admin/judicial", label: "Judicial & ACP", key: "judicial" },
   { href: "/admin/conselho", label: "Conselho Gestor", key: "conselho" },
   { href: "/admin/agentes", label: "Agentes & Portarias", key: "agentes" },
