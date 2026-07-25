@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createSupabase } from "@/lib/supabase";
 import AdminGuard from "../_components/AdminGuard";
 import { gerarNotificacaoPDF, type Agente } from "@/lib/notificacaoPdf";
+import { gerarCadernoInstauracao } from "@/lib/cassacaoPdf";
 import { carregarLogo, type Logo } from "@/lib/pdfPreview";
 
 const sb = createSupabase();
@@ -149,7 +150,18 @@ function Body() {
           <span className="block text-[12px] text-muted">Abre um processo (art. 18) para cada banca elegível ainda sem processo — óbito, inadimplência acima de 3 cotas e ausência em 2 recadastramentos — e registra a notificação de instauração. Não duplica processos já existentes.</span>
           {lote && <span className="mt-1 block text-[12.5px] font-semibold text-brand">{lote}</span>}
         </div>
-        <button onClick={instaurarLote} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy2">Instaurar pendentes</button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button onClick={instaurarLote} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy2">Instaurar pendentes</button>
+          <button
+            onClick={() => gerarCadernoInstauracao({
+              itens: lista.filter((p) => p.status === "aberto").map((p) => ({ banca: p.banca?.numero ?? "—", nome: p.permissionario?.nome ?? null, gatilho: p.gatilho ?? "", baseLegal: p.base_legal })),
+              gestor, secretario, logo,
+            })}
+            className="rounded-lg border border-navy px-4 py-2.5 text-sm font-bold text-navy hover:bg-[#F1EAF8]"
+          >
+            Gerar caderno de instaurações (PDF)
+          </button>
+        </div>
       </div>
 
       <form onSubmit={abrir} className="rounded-2xl border border-line bg-white p-5">
